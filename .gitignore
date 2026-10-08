@@ -219,3 +219,4 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 data/*.duckdb
+data/matchs_variables.csv
