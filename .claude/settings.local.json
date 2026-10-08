@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git check-ignore *)",
+      "Bash(uv run *)",
+      "Bash(uv run python -c ' *)",
+      "Bash(uv add *)"
+    ]
+  }
+}
