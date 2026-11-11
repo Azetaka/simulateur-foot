@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from .collecte_resultats import DOSSIER_DATA
+from .collecte_resultats import DOSSIER_DATA, FICHIER
 
 K = 20
 AVANTAGE_TERRAIN = 40
@@ -35,10 +35,11 @@ def notes_debut_saison(notes, clubs_saison, clubs_saison_precedente,
     return nouvelles_notes
 
 
-def charger_matchs():
-    """Lit le fichier de résultats, trié par saison puis par date."""
-    matchs = pd.read_csv(DOSSIER_DATA / "resultats_ligue1.csv", parse_dates=["Date"])
-    return matchs.sort_values(["Saison", "Date"]).reset_index(drop=True)
+def charger_matchs(championnat="F1"):
+    """Lit les résultats d'un championnat, triés par saison puis par date."""
+    matchs = pd.read_csv(FICHIER, parse_dates=["Date"])
+    matchs = matchs[matchs["Championnat"] == championnat].drop(columns="Championnat")
+    return matchs.sort_values(["Saison", "Date"], kind="stable").reset_index(drop=True)
 
 
 def calculer_forces(matchs, k=K, avantage_terrain=AVANTAGE_TERRAIN,
@@ -84,8 +85,8 @@ def calculer_forces(matchs, k=K, avantage_terrain=AVANTAGE_TERRAIN,
     return matchs, notes
 
 
-def main():
-    matchs, notes = calculer_forces(charger_matchs())
+def main(championnat="F1"):
+    matchs, notes = calculer_forces(charger_matchs(championnat))
     matchs.to_csv(DOSSIER_DATA / "matchs_force.csv", index=False)
 
     print("Notes actuelles :")

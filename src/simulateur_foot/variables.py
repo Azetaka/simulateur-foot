@@ -51,9 +51,9 @@ def ajouter_variables(par_club):
     return par_club
 
 
-def construire_table():
+def construire_table(championnat="F1"):
     """Une ligne par match, avec la force et les variables des deux équipes."""
-    matchs, _ = calculer_forces(charger_matchs())
+    matchs, _ = calculer_forces(charger_matchs(championnat))
     par_club = ajouter_variables(table_par_club(matchs))
 
     # Retour à une ligne par match, avec les variables des deux équipes

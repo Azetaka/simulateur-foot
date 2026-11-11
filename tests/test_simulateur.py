@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from simulateur_foot.championnats import CHAMPIONNATS
 from simulateur_foot.force_clubs import NOTE_INITIALE, calculer_forces, score_attendu
 from simulateur_foot.modele import pertes_brier, pertes_log
 from simulateur_foot.simulation import classement, matchs_restants, resume, simuler
@@ -80,3 +81,17 @@ def test_simulation_respecte_les_probabilites():
     synthese = resume(table, points, rangs)
     assert synthese["titre"].sum() == pytest.approx(1)
     assert sorted(rangs[0]) == [1, 2, 3]
+
+
+def test_zones_selon_le_championnat():
+    """Premier League : 3 relégués sans barrage ; Ligue 1 : 2 relégués et un barragiste."""
+    clubs = [f"C{i}" for i in range(6)]
+    table = pd.DataFrame({"points": [10, 8, 6, 4, 2, 0], "diff_buts": [0] * 6}, index=clubs)
+    rangs = np.tile(np.arange(1, 7), (4, 1))
+    points = np.tile(table["points"].to_numpy(dtype=float), (4, 1))
+    angleterre = resume(table, points, rangs, CHAMPIONNATS["E0"])
+    assert angleterre["relegation"].tolist() == [0, 0, 0, 1, 1, 1]
+    assert angleterre["barrage"].sum() == 0
+    france = resume(table, points, rangs, CHAMPIONNATS["F1"])
+    assert france.loc["C3", "barrage"] == 1 and france["relegation"].sum() == 2
+    assert france["haut"].sum() == 4

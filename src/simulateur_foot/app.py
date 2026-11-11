@@ -1,4 +1,4 @@
-"""Interface de test du simulateur : un match, la fin de saison, la fiabilité du modèle.
+"""Interface de test du simulateur : choix du championnat, un match, la fin de saison, la fiabilité.
 
 Lancement : uv run simulateur-foot interface
 """
@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE
+from simulateur_foot.championnats import CHAMPIONNATS, PAR_DEFAUT
+from simulateur_foot.collecte_resultats import FICHIER, heures_depuis_mise_a_jour, mettre_a_jour
+from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE, NOTE_PROMU
 from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT, evaluer,
                                     proba_frequences, proba_logistique_forces, selection)
 from simulateur_foot.prediction import (SAISON_EN_COURS, SAISONS_APPRENTISSAGE, charger_forces,
@@ -137,23 +139,32 @@ def chiffre_cle(colonne, libelle, valeur, detail=""):
 
 
 # ---------- Données (mises en cache) ----------
+# Chaque fonction reçoit le code du championnat et la « version » du fichier de
+# résultats (sa date de modification) : une mise à jour vide le cache d'elle-même.
+
+SEUIL_HEURES = 12  # au-delà, la saison en cours est retéléchargée au lancement
+
+
+def version_donnees():
+    return FICHIER.stat().st_mtime
+
 
 @st.cache_data
-def donnees():
-    matchs, notes = charger_forces()
+def donnees(code, version):
+    matchs, notes = charger_forces(code)
     return matchs, pd.Series(notes).sort_values(ascending=False)
 
 
 @st.cache_resource
-def modele_retenu():
-    matchs, _ = donnees()
+def modele_retenu(code, version):
+    matchs, _ = donnees(code, version)
     return entrainer(matchs)
 
 
 @st.cache_data
-def forme_recente(club, nb=5):
+def forme_recente(code, version, club, nb=5):
     """Les derniers résultats du club cette saison, du plus ancien au plus récent (V, N, D)."""
-    matchs, _ = donnees()
+    matchs, _ = donnees(code, version)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
     siens = saison[(saison["HomeTeam"] == club) | (saison["AwayTeam"] == club)].sort_values("Date")
     lettres = []
@@ -167,23 +178,23 @@ def forme_recente(club, nb=5):
 
 
 @st.cache_data
-def fin_de_saison(nb, graine):
-    matchs, notes = donnees()
+def fin_de_saison(code, version, nb, graine):
+    matchs, notes = donnees(code, version)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
     table = classement(saison)
     restants = matchs_restants(saison)
-    proba = probabilites(modele_retenu(), restants["HomeTeam"].map(notes).to_numpy(),
+    proba = probabilites(modele_retenu(code, version), restants["HomeTeam"].map(notes).to_numpy(),
                          restants["AwayTeam"].map(notes).to_numpy())
     points, rangs = simuler(table, restants, proba, nb, graine)
-    synthese = resume(table, points, rangs)
+    synthese = resume(table, points, rangs, CHAMPIONNATS[code])
     bas, haut = np.percentile(points, [10, 90], axis=0)
-    fourchette = pd.DataFrame({"bas": bas, "haut": haut}, index=table.index)
+    fourchette = pd.DataFrame({"bas": bas, "haut_points": haut}, index=table.index)
     return synthese.join(fourchette), rangs, list(table.index), len(restants)
 
 
 @st.cache_data
-def fiabilite():
-    matchs, _ = donnees()
+def fiabilite(code, version):
+    matchs, _ = donnees(code, version)
     scores = {}
     for nom, predire in [("modele", proba_logistique_forces), ("frequences", proba_frequences)]:
         _, log_test, brier_test = evaluer(predire, matchs)
@@ -193,9 +204,20 @@ def fiabilite():
     return scores, proba, test
 
 
+def actualiser():
+    """Retélécharge la saison en cours ; renvoie un message pour l'utilisateur."""
+    try:
+        nouveaux = mettre_a_jour()
+    except Exception as erreur:  # pas de réseau, site indisponible…
+        return "erreur", f"Mise à jour impossible ({erreur.__class__.__name__}) : les données locales sont utilisées."
+    if not nouveaux:
+        return "ok", "Données vérifiées : aucun nouveau match depuis la dernière mise à jour."
+    return "ok", f"Données mises à jour : {nouveaux} nouveaux matchs."
+
+
 # ---------- En-tête ----------
 
-st.set_page_config(page_title="Simulateur Ligue 1", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="Simulateur foot", page_icon="⚽", layout="wide")
 mode = "dark" if st.context.theme.type == "dark" else "light"
 c = THEMES[mode]
 css = CSS
@@ -204,17 +226,34 @@ for cle, valeur in c.items():
         css = css.replace(f"__{cle}__", valeur)
 st.html(css)
 
-matchs, notes = donnees()
+# Une fois par session : si les résultats ont plus de 12 h, on va chercher les nouveaux
+if "verification" not in st.session_state:
+    st.session_state.verification = None
+    if heures_depuis_mise_a_jour() > SEUIL_HEURES:
+        with st.spinner("Recherche des derniers résultats…"):
+            st.session_state.verification = actualiser()
+
+codes = list(CHAMPIONNATS)
+code_url = st.query_params.get("championnat", PAR_DEFAUT)
+code = st.segmented_control(
+    "Championnat", codes, default=code_url if code_url in codes else PAR_DEFAUT,
+    format_func=lambda x: CHAMPIONNATS[x].nom, label_visibility="collapsed") or PAR_DEFAUT
+st.query_params["championnat"] = code
+regles = CHAMPIONNATS[code]
+version = version_donnees()
+
+matchs, notes = donnees(code, version)
 saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
 table_actuelle = classement(saison)
 rangs_actuels = {club: i + 1 for i, club in enumerate(table_actuelle.index)}
 
 st.html(f"""
 <div class="bandeau">
-  <div class="sur-titre">Ligue 1 · saison {nom_saison(SAISON_EN_COURS)} · résultats au {saison["Date"].max():%d/%m/%Y}</div>
-  <h1>Simulateur Ligue 1</h1>
+  <div class="sur-titre">Simulateur foot · {regles.pays} · saison {nom_saison(SAISON_EN_COURS)} ·
+  résultats au {saison["Date"].max():%d/%m/%Y}</div>
+  <h1>{regles.nom}</h1>
   <p>Cet outil estime les chances de chaque club, match par match puis sur toute la saison,
-  à partir des résultats de Ligue 1 depuis 2021.</p>
+  à partir des résultats du championnat depuis 2021.</p>
 </div>
 <div class="etapes">
   <div class="etape"><b><span class="num">1</span>Une note par club</b>
@@ -225,9 +264,25 @@ st.html(f"""
     les chances de victoire, de nul et de défaite.</span></div>
   <div class="etape"><b><span class="num">3</span>Des milliers de saisons</b>
     <span>On joue au hasard tous les matchs restants, selon ces chances, des milliers de fois.
-    On compte ensuite combien de fois chaque club finit champion, européen ou relégué.</span></div>
+    On compte ensuite combien de fois chaque club finit champion, en haut du tableau ou relégué.</span></div>
 </div>
 """)
+
+heures = heures_depuis_mise_a_jour()
+age = "il y a moins d'une heure" if heures < 1 else (
+    f"il y a {heures:.0f} h" if heures < 48 else f"il y a {heures / 24:.0f} jours")
+d1, d2 = st.columns([4, 1], vertical_alignment="center")
+d1.caption(f"Résultats téléchargés depuis football-data.co.uk {age}. La source est mise à jour en "
+           f"général le lundi ; l'outil va chercher les nouveaux résultats tout seul au lancement "
+           f"quand ses données ont plus de {SEUIL_HEURES} h.")
+if d2.button("Mettre à jour", width="stretch"):
+    with st.spinner("Téléchargement de la saison en cours…"):
+        st.session_state.verification = actualiser()
+    st.rerun()
+if st.session_state.verification:
+    etat, message = st.session_state.verification
+    (st.success if etat == "ok" else st.warning)(message)
+    st.session_state.verification = None
 
 onglet_match, onglet_saison, onglet_fiabilite = st.tabs(
     ["Un match", "La fin de saison", "Le modèle est-il fiable ?"])
@@ -244,10 +299,10 @@ with onglet_match:
     col_dom, col_ext = st.columns(2)
     dom = col_dom.selectbox("Club qui reçoit", clubs, index=0)
     ext = col_ext.selectbox("Club qui se déplace", [x for x in clubs if x != dom], index=0)
-    proba = probabilites(modele_retenu(), [notes[dom]], [notes[ext]]).iloc[0]
+    proba = probabilites(modele_retenu(code, version), [notes[dom]], [notes[ext]]).iloc[0]
 
     def fiche(club, lieu, cote, droite=False):
-        forme = "".join(f'<i class="{r}" title="{FORME[r]}">{r}</i>' for r in forme_recente(club))
+        forme = "".join(f'<i class="{r}" title="{FORME[r]}">{r}</i>' for r in forme_recente(code, version, club))
         return (f'<div class="club{" droite" if droite else ""}"><span class="lieu">{lieu}</span>'
                 f'<span class="nom"><span class="pastille" style="background:{c[cote]}"></span>{club}</span>'
                 f'<span class="infos">Note <b>{notes[club]:.0f}</b> · {rang(rangs_actuels[club])} du classement</span>'
@@ -350,7 +405,7 @@ with onglet_saison:
                           format_func=lambda n: f"{n:,}".replace(",", " "))
     graine = r2.number_input("Graine du hasard", min_value=0, value=0, step=1,
                              help="Même graine = mêmes tirages : pratique pour comparer deux réglages.")
-    synthese, rangs, ordre_clubs, nb_restants = fin_de_saison(nb, graine)
+    synthese, rangs, ordre_clubs, nb_restants = fin_de_saison(code, version, nb, graine)
     nb_clubs = len(ordre_clubs)
 
     favori = synthese["titre"].idxmax()
@@ -373,9 +428,9 @@ with onglet_saison:
     infobulle = [alt.Tooltip("club:N", title="Club"), alt.Tooltip("points:Q", title="Points actuels"),
                  alt.Tooltip("points_finaux:Q", format=".0f", title="Points finaux (moyenne)"),
                  alt.Tooltip("bas:Q", format=".0f", title="Fourchette basse"),
-                 alt.Tooltip("haut:Q", format=".0f", title="Fourchette haute")]
+                 alt.Tooltip("haut_points:Q", format=".0f", title="Fourchette haute")]
     fourchettes = alt.Chart(projection).mark_rule(strokeWidth=3, color=c["H"], opacity=.45).encode(
-        y=axe_y, x=alt.X("bas:Q", title="Points"), x2="haut:Q", tooltip=infobulle)
+        y=axe_y, x=alt.X("bas:Q", title="Points"), x2="haut_points:Q", tooltip=infobulle)
     actuels = alt.Chart(projection).mark_tick(color=c["D"], thickness=2, size=14).encode(
         y=axe_y, x="points:Q", tooltip=infobulle)
     moyens = alt.Chart(projection).mark_circle(size=110, color=c["H"], opacity=1).encode(
@@ -384,11 +439,12 @@ with onglet_saison:
 
     st.subheader("Les chances de chaque club")
     tableau = projection.copy()
-    probas = ["titre", "ligue_champions", "barrage", "relegation"]
+    probas = ["titre", "haut"] + (["barrage"] if regles.barrage else []) + ["relegation"]
     tableau[probas] = tableau[probas] * 100
     tableau.insert(1, "rang", tableau["club"].map(rangs_actuels))
     progression = lambda titre, aide: st.column_config.ProgressColumn(
-        titre, help=aide, format="%.0f %%", min_value=0, max_value=100)
+        titre, help=aide, format="%.0f\u00a0%%", min_value=0, max_value=100)
+    place_barrage = nb_clubs - regles.relegues
     st.dataframe(
         tableau[["club", "rang", "joues", "points", "diff_buts", "points_finaux"] + probas],
         hide_index=True, width="stretch", height=36 * (len(tableau) + 1) + 3,
@@ -401,9 +457,10 @@ with onglet_saison:
             "points_finaux": st.column_config.NumberColumn("Pts attendus", format="%.0f",
                                                            help="Points moyens en fin de saison"),
             "titre": progression("Champion", "1ʳᵉ place"),
-            "ligue_champions": progression("Ligue des champions", "4 premières places"),
-            "barrage": progression("Barrage", f"{nb_clubs - 2}ᵉ place : match de barrage contre un club de Ligue 2"),
-            "relegation": progression("Relégation", "2 dernières places : descente directe en Ligue 2"),
+            "haut": progression(regles.haut[0], f"{regles.haut[1]} premières places"),
+            "barrage": progression("Barrage", f"{place_barrage}ᵉ place : {regles.barrage_aide}"),
+            "relegation": progression("Relégation", f"{regles.relegues} dernières places : descente "
+                                                    f"directe en {regles.division_inferieure}"),
         })
     st.caption("Clubs rangés du meilleur au moins bon classement final attendu. Les colonnes sont "
                "triables : cliquez sur un titre.")
@@ -435,13 +492,19 @@ with onglet_saison:
             "en début de saison.\n"
             "- Le simulateur tire l'**issue** de chaque match (victoire, nul, défaite), pas le score. "
             "À égalité de points, les clubs sont départagés par leur différence de buts actuelle, "
-            "puis au hasard.\n"
+            f"puis au hasard. En {regles.nom}, le vrai règlement départage d'abord par "
+            f"{regles.departage}.\n"
+            f"- Un club qui n'était pas dans le championnat la saison précédente démarre à "
+            f"{NOTE_PROMU} points, qu'il monte de {regles.division_inferieure} ou descende de "
+            "l'étage au-dessus : les notes de deux divisions ne se comparent pas encore.\n"
+            f"- Les zones ({regles.haut[0].lower()}, barrage, relégation) suivent les règles 2026-27, "
+            "simplifiées : le nombre de places européennes peut varier selon l'indice UEFA.\n"
             "- Blessures, transferts et changements d'entraîneur ne sont pas pris en compte.")
 
 # ---------- Le modèle est-il fiable ? ----------
 
 with onglet_fiabilite:
-    scores, proba_test, test = fiabilite()
+    scores, proba_test, test = fiabilite(code, version)
     reel = test["FTR"]
     explication(
         f"Pour savoir si les chances annoncées sont crédibles, on a fait un examen à l'aveugle : le modèle "

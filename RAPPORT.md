@@ -1,5 +1,7 @@
 # Rapport : modèle de prédiction des résultats
 
+> Étude menée sur la Ligue 1 (`data/resultats.csv`, championnat `F1`). Les chiffres ne dépendent pas des matchs de la saison 2026-27 ajoutés depuis.
+
 ## En bref
 
 Le modèle complet (gradient boosting sur les 16 variables) bat nettement la référence par fréquences, mais **pas** la régression logistique qui n'utilise que `force_dom` et `force_ext`. Sur la saison test 2526, la logistique sur les forces obtient les meilleurs scores. Les variables de forme, de repos et de promotion n'apportent rien de mesurable en plus des notes Elo. Pour le simulateur, je recommande pour l'instant la logistique sur les forces.

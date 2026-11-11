@@ -11,9 +11,9 @@ SAISON_EN_COURS = int(SAISONS[-1])
 SAISONS_APPRENTISSAGE = [int(s) for s in SAISONS[1:-1]]
 
 
-def charger_forces():
+def charger_forces(championnat="F1"):
     """Matchs avec les notes d'avant-match, et notes à jour de chaque club."""
-    return calculer_forces(charger_matchs())
+    return calculer_forces(charger_matchs(championnat))
 
 
 def entrainer(matchs, saisons=SAISONS_APPRENTISSAGE):

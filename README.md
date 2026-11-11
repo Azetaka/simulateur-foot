@@ -1,8 +1,8 @@
 # simulateur-foot
 
-Simulateur de Ligue 1. Il note la force de chaque club (Elo), en tire les probabilités de chaque match (victoire à domicile, nul, victoire à l'extérieur) et simule la fin de la saison en cours pour estimer les chances de titre, de Ligue des champions et de relégation.
+Simulateur de championnats de football : Ligue 1, Premier League, Liga, Bundesliga, Serie A et Ligue 2. Il note la force de chaque club (Elo), en tire les probabilités de chaque match (victoire à domicile, nul, victoire à l'extérieur) et simule la fin de la saison en cours pour estimer les chances de titre, de places européennes (ou de montée) et de relégation.
 
-Le choix du modèle est expliqué dans [RAPPORT.md](RAPPORT.md) : une régression logistique sur les deux notes Elo fait au moins aussi bien qu'un gradient boosting à 16 variables.
+Le choix du modèle est expliqué dans [RAPPORT.md](RAPPORT.md), étude menée sur la Ligue 1 : une régression logistique sur les deux notes Elo fait au moins aussi bien qu'un gradient boosting à 16 variables. Le même modèle est entraîné séparément pour chaque championnat.
 
 ## Installation
 
@@ -16,30 +16,42 @@ uv sync
 uv run simulateur-foot interface
 ```
 
-Trois onglets :
+Un sélecteur en haut choisit le championnat (l'adresse garde le choix : `?championnat=E0`). Trois onglets :
 
 - **Affiche** : probabilités d'un match entre deux clubs, tirage au sort du résultat, évolution des notes Elo et confrontations passées.
 - **Fin de saison** : des milliers de saisons simulées à partir du classement actuel ; probabilités de titre, de top 4, de barrage et de relégation, et carte des rangs finaux possibles.
 - **Fiabilité du modèle** : scores sur la saison test et courbe de calibration.
 
+## Données à jour
+
+Les résultats viennent de [football-data.co.uk](https://www.football-data.co.uk), en général mis à jour le lundi après les matchs du week-end.
+
+- **Automatiquement** : au lancement, l'interface retélécharge la saison en cours si ses données ont plus de 12 h (quelques secondes). Sans réseau, elle continue avec les données locales et le signale.
+- **À la demande** : bouton « Mettre à jour » dans l'interface, ou `uv run simulateur-foot maj`.
+- Une mise à jour modifie `data/resultats.csv` : pensez à le commiter pour que le dépôt reste à jour.
+
 ## Ligne de commande
+
+L'option `-c` choisit le championnat (`F1` Ligue 1 par défaut, `E0` Premier League, `SP1` Liga, `D1` Bundesliga, `I1` Serie A, `F2` Ligue 2), par exemple `uv run simulateur-foot -c E0 simulation`.
 
 | Commande | Rôle |
 |---|---|
-| `uv run simulateur-foot collecte` | Télécharge les résultats depuis football-data.co.uk dans `data/resultats_ligue1.csv` |
+| `uv run simulateur-foot maj` | Met à jour la saison en cours de tous les championnats |
+| `uv run simulateur-foot collecte` | Retélécharge tout depuis 2021-22 dans `data/resultats.csv` |
 | `uv run simulateur-foot forces` | Affiche les notes Elo et exporte `data/matchs_force.csv` |
 | `uv run simulateur-foot variables` | Exporte `data/matchs_variables.csv` (forme, repos, promus) |
 | `uv run simulateur-foot reglage` | Cherche les meilleurs paramètres Elo |
 | `uv run simulateur-foot modele` | Compare les modèles de prédiction (≈ 2 min) |
 | `uv run simulateur-foot simulation` | Simule la fin de la saison en cours dans le terminal |
 
-Seul `resultats_ligue1.csv` est versionné : c'est la donnée source. Les autres fichiers de `data/` se recalculent.
+Seul `resultats.csv` est versionné : c'est la donnée source. Les autres fichiers de `data/` se recalculent.
 
 ## Organisation
 
 ```
 src/simulateur_foot/
-  collecte_resultats.py   téléchargement des résultats
+  championnats.py         championnats suivis et règles de fin de saison
+  collecte_resultats.py   téléchargement et mise à jour des résultats
   force_clubs.py          notes Elo avant chaque match
   reglage_force.py        réglage des paramètres Elo
   variables.py            forme, repos, promus

@@ -4,6 +4,8 @@ Chaque match restant est tiré selon ses probabilités A, D, H. Les notes Elo
 restent figées à leur valeur du jour : on simule ce que l'on sait aujourd'hui.
 Le simulateur ne tire pas de scores, donc les égalités de points sont
 départagées par la différence de buts actuelle, puis au hasard.
+Les zones du classement (Europe, montée, barrage, relégation) viennent des
+règles de chaque championnat, dans championnats.py.
 """
 
 from itertools import permutations
@@ -11,6 +13,7 @@ from itertools import permutations
 import numpy as np
 import pandas as pd
 
+from .championnats import CHAMPIONNATS
 from .prediction import SAISON_EN_COURS, charger_forces, entrainer, probabilites
 
 POINTS = {"H": (3, 0), "D": (1, 1), "A": (0, 3)}
@@ -67,35 +70,38 @@ def simuler(table, restants, proba, nb=NB_SIMULATIONS, graine=0):
     return points, rangs
 
 
-def resume(table, points, rangs):
-    """Par club : points actuels et finaux moyens, probabilités de chaque issue."""
+def resume(table, points, rangs, regles=CHAMPIONNATS["F1"]):
+    """Par club : points actuels et finaux moyens, probabilités de chaque zone."""
     nb_clubs = len(table)
+    limite_relegation = nb_clubs - regles.relegues
     resultat = table.copy()
     resultat["points_finaux"] = points.mean(axis=0)
     resultat["titre"] = (rangs == 1).mean(axis=0)
-    resultat["ligue_champions"] = (rangs <= 4).mean(axis=0)
-    resultat["barrage"] = (rangs == nb_clubs - 2).mean(axis=0)
-    resultat["relegation"] = (rangs > nb_clubs - 2).mean(axis=0)
+    resultat["haut"] = (rangs <= regles.haut[1]).mean(axis=0)
+    resultat["barrage"] = (rangs == limite_relegation).mean(axis=0) if regles.barrage else 0.0
+    resultat["relegation"] = (rangs > limite_relegation).mean(axis=0)
     resultat["rang_moyen"] = rangs.mean(axis=0)
     return resultat.sort_values("rang_moyen")
 
 
-def simuler_saison(nb=NB_SIMULATIONS, graine=0):
+def simuler_saison(championnat="F1", nb=NB_SIMULATIONS, graine=0):
     """Enchaîne tout : notes, modèle, matchs restants, tirages, résumé."""
-    matchs, notes = charger_forces()
+    matchs, notes = charger_forces(championnat)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
     table = classement(saison)
     restants = matchs_restants(saison)
     proba = probabilites(entrainer(matchs), restants["HomeTeam"].map(notes),
                          restants["AwayTeam"].map(notes))
     points, rangs = simuler(table, restants, proba, nb, graine)
-    return resume(table, points, rangs), len(restants)
+    return resume(table, points, rangs, CHAMPIONNATS[championnat]), len(restants)
 
 
-def main():
-    resultat, nb_restants = simuler_saison()
-    print(f"Saison {SAISON_EN_COURS} : {nb_restants} matchs restants, {NB_SIMULATIONS} simulations\n")
-    print(f"{'club':<12}{'pts':>5}{'final':>7}{'titre':>8}{'LdC':>7}{'rel.':>7}")
+def main(championnat="F1"):
+    regles = CHAMPIONNATS[championnat]
+    resultat, nb_restants = simuler_saison(championnat)
+    print(f"{regles.nom}, saison {SAISON_EN_COURS} : {nb_restants} matchs restants, "
+          f"{NB_SIMULATIONS} simulations\n")
+    print(f"{'club':<16}{'pts':>5}{'final':>7}{'titre':>8}{'haut':>7}{'rel.':>7}")
     for club, ligne in resultat.iterrows():
-        print(f"{club:<12}{ligne.points:>5}{ligne.points_finaux:>7.1f}{ligne.titre:>8.1%}"
-              f"{ligne.ligue_champions:>7.1%}{ligne.relegation:>7.1%}")
+        print(f"{club:<16}{ligne.points:>5}{ligne.points_finaux:>7.1f}{ligne.titre:>8.1%}"
+              f"{ligne.haut:>7.1%}{ligne.relegation:>7.1%}")
