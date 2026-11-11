@@ -1,15 +1,14 @@
 """Calcule la force (note Elo) de chaque club avant chacun de ses matchs."""
 
-from pathlib import Path
-
 import pandas as pd
+
+from .collecte_resultats import DOSSIER_DATA
 
 K = 20
 AVANTAGE_TERRAIN = 40
 NOTE_INITIALE = 1500
 NOTE_PROMU = 1400
 RETOUR_MOYENNE = 0.0
-DOSSIER_DATA = Path(__file__).resolve().parents[1] / "data"
 SCORE_REEL = {"H": 1.0, "D": 0.5, "A": 0.0}
 
 

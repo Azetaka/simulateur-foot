@@ -1,16 +1,16 @@
 [project]
 name = "simulateur-foot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Simulateur de Ligue 1 : notes Elo des clubs, prédiction des matchs et simulation de fin de saison"
 readme = "README.md"
 authors = [
     { name = "Azetaka", email = "uriel.fagninou67347345@gmail.com" }
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "duckdb>=1.5.6",
     "pandas>=3.0.6",
     "scikit-learn>=1.9.1",
+    "streamlit>=1.67.0",
 ]
 
 [project.scripts]
@@ -22,5 +22,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "duckdb>=2.0.0",
     "ipykernel>=7.4.0",
+    "pytest>=9.2.0",
 ]
