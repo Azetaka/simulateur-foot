@@ -225,3 +225,5 @@ data/matchs_*.csv
 # Réglages locaux de Claude Code
 .claude/settings.local.json
 .DS_Store
+.agents/
+.claude/
