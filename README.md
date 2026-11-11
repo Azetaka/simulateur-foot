@@ -1,6 +1,6 @@
 # simulateur-foot
 
-Simulateur de championnats de football : Ligue 1, Premier League, Liga, Bundesliga, Serie A et Ligue 2. Il note la force de chaque club (Elo), en tire les probabilités de chaque match (victoire à domicile, nul, victoire à l'extérieur) et simule la fin de la saison en cours pour estimer les chances de titre, de places européennes (ou de montée) et de relégation.
+Simulateur de championnats de football : Ligue 1, Premier League, Liga, Bundesliga, Serie A et Ligue 2. Il note la force de chaque club (Elo, pondéré par l'écart de buts), en tire les probabilités de chaque match (victoire à domicile, nul, victoire à l'extérieur) et de chaque score, et simule la fin de la saison en cours pour estimer les chances de titre, de places européennes (ou de montée) et de relégation.
 
 Le choix du modèle est expliqué dans [RAPPORT.md](RAPPORT.md), étude menée sur la Ligue 1 : une régression logistique sur les deux notes Elo fait au moins aussi bien qu'un gradient boosting à 16 variables. Le même modèle est entraîné séparément pour chaque championnat.
 
@@ -50,10 +50,13 @@ En cas de souci :
 
 ## L'interface
 
-Un sélecteur en haut choisit le championnat (l'adresse garde le choix : `?championnat=E0`). Chaque page commence par un encadré « Comment lire cette page ». Trois onglets :
+Un sélecteur en haut choisit le championnat (l'adresse garde le choix : `?championnat=E0`). Chaque page commence par un encadré « Comment lire cette page ». Six onglets :
 
-- **Un match** : chances de victoire, de nul et de défaite entre deux clubs, tirage au sort du résultat (et du même match joué 100 fois), évolution des notes Elo et confrontations passées.
-- **La fin de saison** : des milliers de saisons simulées à partir du classement actuel ; points attendus avec leur fourchette, chances de titre, de places européennes (ou de montée), de barrage et de relégation, et carte des places finales possibles.
+- **Un match** : chances de victoire, de nul et de défaite entre deux clubs, scores les plus probables et grille des scores, tirage au sort d'un score (et du même match joué 100 fois), évolution des notes Elo et confrontations passées.
+- **Les forces du moment** : les clubs rangés par note Elo, avec la tendance sur les 5 derniers matchs, l'écart avec le classement et la difficulté du calendrier restant.
+- **Prochaine journée** : les chances du modèle face à celles des bookmakers sur les matchs annoncés.
+- **La fin de saison** : des milliers de saisons simulées à partir du classement actuel ; points attendus avec leur fourchette, chances de titre, de places européennes (ou de montée), de barrage et de relégation, et carte des places finales possibles. La prochaine journée annoncée est jouée en premier.
+- **Les meilleurs joueurs** : buteurs et passeurs avec leur projection de fin de saison.
 - **Le modèle est-il fiable ?** : part de pronostics justes sur une saison que le modèle n'a pas vue, calibration des probabilités et plus grosses surprises.
 
 ## Données à jour
@@ -87,12 +90,13 @@ Seuls `resultats.csv` et `prochains_matchs.csv` sont versionnés : ce sont les d
 src/simulateur_foot/
   championnats.py         championnats suivis et règles de fin de saison
   collecte_resultats.py   téléchargement et mise à jour des résultats
-  force_clubs.py          notes Elo avant chaque match
+  force_clubs.py          notes Elo avant chaque match (pondérées par l'écart de buts)
   reglage_force.py        réglage des paramètres Elo
   variables.py            forme, repos, promus
   modele.py               comparaison des modèles
   prediction.py           modèle retenu : probabilités d'un match
-  simulation.py           simulation de la fin de saison (Monte-Carlo, notes qui évoluent)
+  scores.py               probabilités de chaque score (Poisson, recalé sur prediction.py)
+  simulation.py           simulation de la fin de saison (Monte-Carlo, scores et notes qui évoluent)
   app.py                  interface Streamlit
 notebooks/                contrôles et explorations
 tests/                    tests (uv run pytest)

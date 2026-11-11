@@ -9,6 +9,7 @@ GRILLE = {
     "avantage_terrain": [0, 20, 40, 60],
     "note_promu": [1350, 1400, 1450],
     "retour_moyenne": [0.0, 0.15, 0.25, 0.35, 0.5],
+    "poids_ecart": [0.0, 0.25, 0.5, 0.75, 1.0],
 }
 SAISONS_REGLAGE = [2223, 2324, 2425]
 SAISON_TEST = 2526

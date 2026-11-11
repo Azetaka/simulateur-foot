@@ -1,12 +1,13 @@
 """Simule la fin de la saison en cours par tirage au sort (méthode de Monte-Carlo).
 
-Chaque match restant est tiré selon ses probabilités A, D, H. Par défaut, les
-notes Elo évoluent pendant chaque saison simulée : après chaque journée tirée
-au sort, elles sont mises à jour avec la même règle que pour les vrais matchs,
-si bien qu'un club en série favorable devient favori des journées suivantes.
-La variante à notes figées (simuler) garde les notes du jour jusqu'au bout.
-Le simulateur ne tire pas de scores, donc les égalités de points sont
-départagées par la différence de buts actuelle, puis au hasard.
+Chaque match restant est tiré selon ses probabilités A, D, H, puis son écart de
+buts selon le modèle de score (scores.py). Par défaut, les notes Elo évoluent
+pendant chaque saison simulée : après chaque journée tirée au sort, elles sont
+mises à jour avec la même règle que pour les vrais matchs (écart de buts
+compris), si bien qu'un club en série favorable devient favori des journées
+suivantes. La différence de buts évolue aussi et sert à départager les
+égalités de points, puis le hasard tranche. La variante à notes figées
+(simuler) garde les notes et la différence de buts du jour jusqu'au bout.
 Les zones du classement (Europe, montée, barrage, relégation) viennent des
 règles de chaque championnat, dans championnats.py.
 """
@@ -17,8 +18,9 @@ import numpy as np
 import pandas as pd
 
 from .championnats import CHAMPIONNATS
-from .force_clubs import K, score_attendu
+from .force_clubs import AVANTAGE_TERRAIN, K, POIDS_ECART, facteur_ecart, score_attendu
 from .prediction import SAISON_EN_COURS, charger_forces, entrainer, probabilites, probabilites_tableau
+from .scores import entrainer_scores, tirer_ecarts
 
 POINTS = {"H": (3, 0), "D": (1, 1), "A": (0, 3)}
 NB_SIMULATIONS = 10_000
@@ -63,14 +65,18 @@ def matchs_restants(matchs_saison):
     return pd.DataFrame(restantes, columns=["HomeTeam", "AwayTeam"])
 
 
-def calendrier(restants, graine=0):
+def calendrier(restants, graine=0, premiers=None):
     """Numéro de journée de chaque match restant (0, 1, 2…).
 
     La source ne donne pas les dates des matchs à venir : on mélange les
     affiches, puis on remplit les journées dans l'ordre, sans qu'un club joue
-    deux fois dans la même journée.
+    deux fois dans la même journée. `premiers` (paires (domicile, extérieur)
+    annoncées pour la prochaine journée) sont placés en tête, donc joués d'abord.
     """
     ordre = np.random.default_rng(graine).permutation(len(restants))
+    if premiers:
+        annonces = np.array([paire in premiers for paire in zip(restants["HomeTeam"], restants["AwayTeam"])])
+        ordre = np.concatenate([ordre[annonces[ordre]], ordre[~annonces[ordre]]])
     occupes, numero = [], np.empty(len(restants), dtype=int)
     for i in ordre:
         dom, ext = restants["HomeTeam"].iat[i], restants["AwayTeam"].iat[i]
@@ -82,45 +88,55 @@ def calendrier(restants, graine=0):
     return numero
 
 
-def departager(table, points, generateur):
-    """Rangs à partir des points : différence de buts actuelle, puis hasard (tous deux < 1 point)."""
-    diff = table["diff_buts"].to_numpy(dtype=float)
+def departager(table, points, generateur, diff=None):
+    """Rangs à partir des points : différence de buts (celle du jour, ou simulée), puis hasard (tous deux < 1 point)."""
+    if diff is None:
+        diff = table["diff_buts"].to_numpy(dtype=float)
     cle = points + (diff - diff.min()) / (diff.max() - diff.min() + 1) * 0.5
     cle += generateur.random(points.shape) * 0.01
     return (-cle).argsort(axis=1).argsort(axis=1) + 1
 
 
-def simuler_notes_evolutives(table, restants, notes, modele, nb=NB_SIMULATIONS, graine=0, k=K):
+def simuler_notes_evolutives(table, restants, notes, modele, nb=NB_SIMULATIONS, graine=0, k=K,
+                             modele_scores=None, poids_ecart=POIDS_ECART, premiers=None):
     """Comme simuler, mais les notes Elo bougent après chaque journée tirée au sort.
 
-    notes : notes du jour de chaque club ; modele : celui de prediction.entrainer.
+    notes : notes du jour de chaque club ; modele : celui de prediction.entrainer ;
+    modele_scores : celui de scores.entrainer_scores, qui tire l'écart de buts de
+    chaque match (sans lui, toute victoire vaut un but d'écart). premiers : affiches
+    annoncées pour la prochaine journée, jouées en premier.
     Renvoie points et rangs finaux, tableaux (nb simulations × clubs).
     """
     clubs = list(table.index)
     position = {club: i for i, club in enumerate(clubs)}
     dom = restants["HomeTeam"].map(position).to_numpy()
     ext = restants["AwayTeam"].map(position).to_numpy()
-    journee = calendrier(restants, graine)
+    journee = calendrier(restants, graine, premiers)
 
     generateur = np.random.default_rng(graine)
     elo = np.tile(np.array([notes[club] for club in clubs], dtype=float), (nb, 1))
     points = np.tile(table["points"].to_numpy(dtype=float), (nb, 1))
+    diff = np.tile(table["diff_buts"].to_numpy(dtype=float), (nb, 1))
     for j in range(journee.max() + 1 if len(restants) else 0):
-        matchs = np.flatnonzero(journee == j)
-        d, e = dom[matchs], ext[matchs]  # un club au plus une fois par journée
-        note_dom, note_ext = elo[:, d], elo[:, e]
-        proba = probabilites_tableau(modele, note_dom, note_ext)
-        u = generateur.random(note_dom.shape)
-        exterieur = u < proba[..., 0]
-        nul = ~exterieur & (u < proba[..., 0] + proba[..., 1])
-        points[:, d] += np.where(exterieur, 0, np.where(nul, 1, 3))
-        points[:, e] += np.where(exterieur, 3, np.where(nul, 1, 0))
-        # Même mise à jour Elo que pour les vrais matchs (force_clubs.calculer_forces)
-        reel = np.where(exterieur, 0.0, np.where(nul, 0.5, 1.0))
-        correction = k * (reel - score_attendu(note_dom, note_ext))
-        elo[:, d] += correction
-        elo[:, e] -= correction
-    return points, departager(table, points, generateur)
+        for i in np.flatnonzero(journee == j):  # un club au plus une fois par journée
+            d, e = dom[i], ext[i]
+            note_dom, note_ext = elo[:, d], elo[:, e]
+            if modele_scores is None:
+                proba = probabilites_tableau(modele, note_dom, note_ext)
+                u = generateur.random(nb)
+                ecart = np.where(u < proba[:, 0], -1, np.where(u < proba[:, 0] + proba[:, 1], 0, 1))
+            else:
+                ecart = tirer_ecarts(modele_scores, modele, note_dom, note_ext, generateur)
+            points[:, d] += np.where(ecart > 0, 3, np.where(ecart == 0, 1, 0))
+            points[:, e] += np.where(ecart < 0, 3, np.where(ecart == 0, 1, 0))
+            diff[:, d] += ecart
+            diff[:, e] -= ecart
+            # Même mise à jour Elo que pour les vrais matchs (force_clubs.calculer_forces)
+            reel = np.where(ecart > 0, 1.0, np.where(ecart == 0, 0.5, 0.0))
+            correction = k * facteur_ecart(ecart, poids_ecart) * (reel - score_attendu(note_dom, note_ext))
+            elo[:, d] += correction
+            elo[:, e] -= correction
+    return points, departager(table, points, generateur, diff)
 
 
 def simuler(table, restants, proba, nb=NB_SIMULATIONS, graine=0):
@@ -146,6 +162,23 @@ def simuler(table, restants, proba, nb=NB_SIMULATIONS, graine=0):
     return points, departager(table, points, generateur)
 
 
+def difficulte_calendrier(restants, notes, avantage_terrain=AVANTAGE_TERRAIN):
+    """Note moyenne des adversaires restants de chaque club, terrain compris.
+
+    Un adversaire reçu compte sa note moins l'avantage du terrain, un adversaire
+    chez qui l'on se déplace sa note plus cet avantage : plus le chiffre est haut,
+    plus la fin de saison est difficile.
+    """
+    notes = pd.Series(notes)
+    lignes = pd.concat([
+        pd.DataFrame({"club": restants["HomeTeam"].to_numpy(),
+                      "adversaire": restants["AwayTeam"].map(notes).to_numpy() - avantage_terrain}),
+        pd.DataFrame({"club": restants["AwayTeam"].to_numpy(),
+                      "adversaire": restants["HomeTeam"].map(notes).to_numpy() + avantage_terrain}),
+    ])
+    return lignes.groupby("club")["adversaire"].mean()
+
+
 def resume(table, points, rangs, regles=CHAMPIONNATS["F1"]):
     """Par club : points actuels et finaux moyens, probabilités de chaque zone."""
     nb_clubs = len(table)
@@ -168,7 +201,8 @@ def simuler_saison(championnat="F1", nb=NB_SIMULATIONS, graine=0, notes_evolutiv
     restants = matchs_restants(saison)
     modele = entrainer(matchs)
     if notes_evolutives:
-        points, rangs = simuler_notes_evolutives(table, restants, notes, modele, nb, graine)
+        points, rangs = simuler_notes_evolutives(table, restants, notes, modele, nb, graine,
+                                                 modele_scores=entrainer_scores(matchs))
     else:
         proba = probabilites(modele, restants["HomeTeam"].map(notes), restants["AwayTeam"].map(notes))
         points, rangs = simuler(table, restants, proba, nb, graine)
