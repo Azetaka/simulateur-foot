@@ -57,7 +57,7 @@ src/simulateur_foot/
   variables.py            forme, repos, promus
   modele.py               comparaison des modèles
   prediction.py           modèle retenu : probabilités d'un match
-  simulation.py           simulation de la fin de saison (Monte-Carlo)
+  simulation.py           simulation de la fin de saison (Monte-Carlo, notes qui évoluent)
   app.py                  interface Streamlit
 notebooks/                contrôles et explorations
 tests/                    tests (uv run pytest)

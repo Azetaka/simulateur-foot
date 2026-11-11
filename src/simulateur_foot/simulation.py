@@ -1,7 +1,10 @@
 """Simule la fin de la saison en cours par tirage au sort (méthode de Monte-Carlo).
 
-Chaque match restant est tiré selon ses probabilités A, D, H. Les notes Elo
-restent figées à leur valeur du jour : on simule ce que l'on sait aujourd'hui.
+Chaque match restant est tiré selon ses probabilités A, D, H. Par défaut, les
+notes Elo évoluent pendant chaque saison simulée : après chaque journée tirée
+au sort, elles sont mises à jour avec la même règle que pour les vrais matchs,
+si bien qu'un club en série favorable devient favori des journées suivantes.
+La variante à notes figées (simuler) garde les notes du jour jusqu'au bout.
 Le simulateur ne tire pas de scores, donc les égalités de points sont
 départagées par la différence de buts actuelle, puis au hasard.
 Les zones du classement (Europe, montée, barrage, relégation) viennent des
@@ -14,7 +17,8 @@ import numpy as np
 import pandas as pd
 
 from .championnats import CHAMPIONNATS
-from .prediction import SAISON_EN_COURS, charger_forces, entrainer, probabilites
+from .force_clubs import K, score_attendu
+from .prediction import SAISON_EN_COURS, charger_forces, entrainer, probabilites, probabilites_tableau
 
 POINTS = {"H": (3, 0), "D": (1, 1), "A": (0, 3)}
 NB_SIMULATIONS = 10_000
@@ -59,8 +63,68 @@ def matchs_restants(matchs_saison):
     return pd.DataFrame(restantes, columns=["HomeTeam", "AwayTeam"])
 
 
+def calendrier(restants, graine=0):
+    """Numéro de journée de chaque match restant (0, 1, 2…).
+
+    La source ne donne pas les dates des matchs à venir : on mélange les
+    affiches, puis on remplit les journées dans l'ordre, sans qu'un club joue
+    deux fois dans la même journée.
+    """
+    ordre = np.random.default_rng(graine).permutation(len(restants))
+    occupes, numero = [], np.empty(len(restants), dtype=int)
+    for i in ordre:
+        dom, ext = restants["HomeTeam"].iat[i], restants["AwayTeam"].iat[i]
+        j = next((j for j, clubs in enumerate(occupes) if dom not in clubs and ext not in clubs), len(occupes))
+        if j == len(occupes):
+            occupes.append(set())
+        occupes[j] |= {dom, ext}
+        numero[i] = j
+    return numero
+
+
+def departager(table, points, generateur):
+    """Rangs à partir des points : différence de buts actuelle, puis hasard (tous deux < 1 point)."""
+    diff = table["diff_buts"].to_numpy(dtype=float)
+    cle = points + (diff - diff.min()) / (diff.max() - diff.min() + 1) * 0.5
+    cle += generateur.random(points.shape) * 0.01
+    return (-cle).argsort(axis=1).argsort(axis=1) + 1
+
+
+def simuler_notes_evolutives(table, restants, notes, modele, nb=NB_SIMULATIONS, graine=0, k=K):
+    """Comme simuler, mais les notes Elo bougent après chaque journée tirée au sort.
+
+    notes : notes du jour de chaque club ; modele : celui de prediction.entrainer.
+    Renvoie points et rangs finaux, tableaux (nb simulations × clubs).
+    """
+    clubs = list(table.index)
+    position = {club: i for i, club in enumerate(clubs)}
+    dom = restants["HomeTeam"].map(position).to_numpy()
+    ext = restants["AwayTeam"].map(position).to_numpy()
+    journee = calendrier(restants, graine)
+
+    generateur = np.random.default_rng(graine)
+    elo = np.tile(np.array([notes[club] for club in clubs], dtype=float), (nb, 1))
+    points = np.tile(table["points"].to_numpy(dtype=float), (nb, 1))
+    for j in range(journee.max() + 1 if len(restants) else 0):
+        matchs = np.flatnonzero(journee == j)
+        d, e = dom[matchs], ext[matchs]  # un club au plus une fois par journée
+        note_dom, note_ext = elo[:, d], elo[:, e]
+        proba = probabilites_tableau(modele, note_dom, note_ext)
+        u = generateur.random(note_dom.shape)
+        exterieur = u < proba[..., 0]
+        nul = ~exterieur & (u < proba[..., 0] + proba[..., 1])
+        points[:, d] += np.where(exterieur, 0, np.where(nul, 1, 3))
+        points[:, e] += np.where(exterieur, 3, np.where(nul, 1, 0))
+        # Même mise à jour Elo que pour les vrais matchs (force_clubs.calculer_forces)
+        reel = np.where(exterieur, 0.0, np.where(nul, 0.5, 1.0))
+        correction = k * (reel - score_attendu(note_dom, note_ext))
+        elo[:, d] += correction
+        elo[:, e] -= correction
+    return points, departager(table, points, generateur)
+
+
 def simuler(table, restants, proba, nb=NB_SIMULATIONS, graine=0):
-    """Rangs finaux simulés : tableau (nb simulations × clubs), 1 = premier."""
+    """Rangs finaux simulés avec des probabilités fixes : tableau (nb simulations × clubs), 1 = premier."""
     clubs = list(table.index)
     position = {club: i for i, club in enumerate(clubs)}
     dom = restants["HomeTeam"].map(position).to_numpy()
@@ -79,12 +143,7 @@ def simuler(table, restants, proba, nb=NB_SIMULATIONS, graine=0):
         points[:, dom[i]] += pts_dom[:, i]
         points[:, ext[i]] += pts_ext[:, i]
 
-    # Départage : différence de buts actuelle, puis hasard (tous deux < 1 point)
-    diff = table["diff_buts"].to_numpy(dtype=float)
-    cle = points + (diff - diff.min()) / (diff.max() - diff.min() + 1) * 0.5
-    cle += generateur.random(points.shape) * 0.01
-    rangs = (-cle).argsort(axis=1).argsort(axis=1) + 1
-    return points, rangs
+    return points, departager(table, points, generateur)
 
 
 def resume(table, points, rangs, regles=CHAMPIONNATS["F1"]):
@@ -101,15 +160,18 @@ def resume(table, points, rangs, regles=CHAMPIONNATS["F1"]):
     return resultat.sort_values("rang_moyen")
 
 
-def simuler_saison(championnat="F1", nb=NB_SIMULATIONS, graine=0):
+def simuler_saison(championnat="F1", nb=NB_SIMULATIONS, graine=0, notes_evolutives=True):
     """Enchaîne tout : notes, modèle, matchs restants, tirages, résumé."""
     matchs, notes = charger_forces(championnat)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
     table = classement(saison)
     restants = matchs_restants(saison)
-    proba = probabilites(entrainer(matchs), restants["HomeTeam"].map(notes),
-                         restants["AwayTeam"].map(notes))
-    points, rangs = simuler(table, restants, proba, nb, graine)
+    modele = entrainer(matchs)
+    if notes_evolutives:
+        points, rangs = simuler_notes_evolutives(table, restants, notes, modele, nb, graine)
+    else:
+        proba = probabilites(modele, restants["HomeTeam"].map(notes), restants["AwayTeam"].map(notes))
+        points, rangs = simuler(table, restants, proba, nb, graine)
     return resume(table, points, rangs, CHAMPIONNATS[championnat]), len(restants)
 
 
