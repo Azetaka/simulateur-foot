@@ -9,12 +9,13 @@ import pandas as pd
 import streamlit as st
 
 from simulateur_foot.championnats import CHAMPIONNATS, PAR_DEFAUT
-from simulateur_foot.collecte_resultats import FICHIER, heures_depuis_mise_a_jour, mettre_a_jour
+from simulateur_foot.collecte_resultats import (FICHIER, FICHIER_PROCHAINS, charger_prochains_matchs,
+                                                heures_depuis_mise_a_jour, mettre_a_jour)
 from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE, NOTE_PROMU
 from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT, evaluer,
                                     proba_frequences, proba_logistique_forces, selection)
-from simulateur_foot.prediction import (SAISON_EN_COURS, SAISONS_APPRENTISSAGE, charger_forces,
-                                        entrainer, probabilites)
+from simulateur_foot.prediction import (SAISON_EN_COURS, SAISONS_APPRENTISSAGE, chances_bookmakers,
+                                        charger_forces, entrainer, probabilites)
 from simulateur_foot.simulation import (classement, matchs_restants, points_attendus, resume, simuler,
                                         simuler_notes_evolutives)
 
@@ -35,6 +36,7 @@ THEMES = {
 }
 NOMS_ISSUES = {"H": "Victoire à domicile", "D": "Match nul", "A": "Victoire à l'extérieur"}
 FORME = {"V": "Victoire", "N": "Nul", "D": "Défaite"}
+JOURS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
 
 CSS = """
 <style>
@@ -96,6 +98,27 @@ CSS = """
   .colonne-titre { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 600;
                    letter-spacing: .08em; text-transform: uppercase; color: __encre2__;
                    border-bottom: 1px solid __bord__; padding-bottom: .3rem; margin: .2rem 0 .6rem; }
+  .journee { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(430px, 100%), 1fr));
+             gap: .8rem; margin: .4rem 0 .8rem; }
+  .duel { background: __carte__; border: 1px solid __bord__; border-radius: 8px; padding: .8rem 1rem .75rem; }
+  .duel-tete { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem;
+               margin-bottom: .45rem; }
+  .duel-tete .clubs { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; font-weight: 700;
+                      color: __encre__; line-height: 1.1; }
+  .duel-tete .clubs span { color: __encre2__; font-weight: 400; margin: 0 .3rem; }
+  .duel-tete .quand { color: __encre2__; font-size: .82rem; white-space: nowrap; }
+  .duel-ligne { display: grid; grid-template-columns: 6.6rem 1fr; align-items: center; gap: .6rem;
+                margin: .3rem 0; }
+  .duel-ligne .source { font-size: .74rem; letter-spacing: .07em; text-transform: uppercase;
+                        color: __encre2__; }
+  .mini-barre { display: flex; gap: 2px; height: 24px; }
+  .mini-barre div { border-radius: 3px; display: flex; align-items: center; justify-content: center;
+                    color: #fff; font-size: .8rem; font-weight: 600; font-variant-numeric: tabular-nums;
+                    min-width: 0; overflow: hidden; white-space: nowrap; }
+  .duel-pied { font-size: .86rem; color: __encre2__; margin-top: .5rem; border-top: 1px solid __bord__;
+               padding-top: .45rem; }
+  .duel-pied b { color: __encre__; }
+  .duel-pied .fort { color: __accent__; font-weight: 600; }
   .chiffre-cle { background: __carte__; border: 1px solid __bord__; border-radius: 6px;
                  padding: .8rem 1rem; height: 100%; }
   .chiffre-cle .valeur { font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
@@ -218,6 +241,22 @@ def fin_de_saison(code, version, nb, graine, evolutives=True):
 
 
 @st.cache_data
+def prochaine_journee(code, version, version_prochains):
+    """Matchs annoncés, chances du modèle (notes du jour) et des bookmakers (cotes moyennes)."""
+    matchs, notes = donnees(code, version)
+    prochains = charger_prochains_matchs(code, matchs[matchs["Saison"] == SAISON_EN_COURS])
+    connus = prochains["HomeTeam"].isin(notes.index) & prochains["AwayTeam"].isin(notes.index)
+    prochains = prochains[connus].reset_index(drop=True)
+    if prochains.empty:  # rien d'annoncé : le modèle refuse un tableau vide
+        vide = pd.DataFrame(columns=RESULTATS, dtype=float)
+        return prochains, vide, vide, int((~connus).sum())
+    modele = probabilites(modele_retenu(code, version), prochains["HomeTeam"].map(notes).to_numpy(),
+                          prochains["AwayTeam"].map(notes).to_numpy())
+    marche = chances_bookmakers(prochains["CoteH"], prochains["CoteD"], prochains["CoteA"])
+    return prochains, modele, marche, int((~connus).sum())
+
+
+@st.cache_data
 def fiabilite(code, version):
     matchs, _ = donnees(code, version)
     scores = {}
@@ -311,8 +350,8 @@ if st.session_state.verification:
     (st.success if etat == "ok" else st.warning)(message)
     st.session_state.verification = None
 
-onglet_match, onglet_saison, onglet_fiabilite = st.tabs(
-    ["Un match", "La fin de saison", "Le modèle est-il fiable ?"])
+onglet_match, onglet_journee, onglet_saison, onglet_fiabilite = st.tabs(
+    ["Un match", "Prochaine journée", "La fin de saison", "Le modèle est-il fiable ?"])
 
 # ---------- Un match ----------
 
@@ -420,6 +459,86 @@ with onglet_match:
                 .rename(columns={"HomeTeam": "Domicile", "AwayTeam": "Extérieur"}),
                 hide_index=True, width="stretch",
                 column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY")})
+
+# ---------- Prochaine journée ----------
+
+with onglet_journee:
+    explication("Les matchs annoncés de la prochaine journée, avec deux pronostics côte à côte : celui "
+                "du modèle, tiré des seules notes Elo du jour, et celui des bookmakers, tiré de leurs "
+                "cotes moyennes. Les bookmakers savent ce que le modèle ignore : blessures, suspensions, "
+                "rotation de l'effectif. Quand les deux divergent nettement, c'est souvent là que le "
+                "modèle manque une information.")
+    version_prochains = FICHIER_PROCHAINS.stat().st_mtime if FICHIER_PROCHAINS.exists() else 0
+    prochains, chances_modele, chances_marche, inconnus = prochaine_journee(code, version, version_prochains)
+
+    if prochains.empty:
+        st.info("Aucun match annoncé pour l'instant. La source publie la prochaine journée en général "
+                "en milieu de semaine : le bouton « Mettre à jour » va la chercher.")
+    else:
+        ecarts = (chances_modele - chances_marche).abs()
+        meme_favori = (chances_modele.idxmax(axis=1) == chances_marche.idxmax(axis=1))
+        desaccord = ecarts.max(axis=1).idxmax()
+        j1, j2, j3 = st.columns(3)
+        chiffre_cle(j1, "Matchs annoncés", len(prochains),
+                    f"du {prochains['Date'].min():%d/%m} au {prochains['Date'].max():%d/%m}")
+        chiffre_cle(j2, "Même favori", f"{meme_favori.sum()} sur {len(prochains)}",
+                    "Le modèle et les bookmakers désignent le même résultat le plus probable")
+        chiffre_cle(j3, "Plus gros désaccord",
+                    f"{prochains.loc[desaccord, 'HomeTeam']} – {prochains.loc[desaccord, 'AwayTeam']}",
+                    f"{ecarts.loc[desaccord].max() * 100:.0f} points d'écart sur une issue")
+
+        st.html(f"""<div class="legende-graphique" style="margin-top:1rem">
+          <span><i style="width:12px;height:12px;border-radius:2px;background:{c['H']}"></i>Victoire à domicile</span>
+          <span><i style="width:12px;height:12px;border-radius:2px;background:{c['D']}"></i>Match nul</span>
+          <span><i style="width:12px;height:12px;border-radius:2px;background:{c['A']}"></i>Victoire à l'extérieur</span>
+        </div>""")
+
+        def mini_barre(chances):
+            return "".join(
+                f'<div style="flex:{chances[r]:.4f};background:{c[r]}" title="{NOMS_ISSUES[r]} : '
+                f'{pourcent(chances[r])}">{pourcent(chances[r]) if chances[r] >= 0.16 else ""}</div>'
+                for r in ["H", "D", "A"])
+
+        cartes = []
+        for i, m in prochains.iterrows():
+            heure = f" · {m['Heure']}" if isinstance(m["Heure"], str) else ""
+            issue = ecarts.loc[i].idxmax()
+            nom_issue = {"H": f"la victoire de {m['HomeTeam']}", "D": "le nul",
+                         "A": f"la victoire de {m['AwayTeam']}"}[issue]
+            sens = "plus" if chances_modele.loc[i, issue] > chances_marche.loc[i, issue] else "moins"
+            ecart = ecarts.loc[i, issue] * 100
+            pied = (f'Accord : <b>{ecart:.0f} points</b> d\'écart au plus' if ecart < 5 else
+                    f'<span class="{"fort" if ecart >= 12 else ""}">Le modèle croit {sens} à {nom_issue}</span> : '
+                    f'<b>{pourcent(chances_modele.loc[i, issue])}</b> contre '
+                    f'<b>{pourcent(chances_marche.loc[i, issue])}</b> pour les bookmakers')
+            cartes.append(f"""<div class="duel">
+              <div class="duel-tete"><div class="clubs">{m['HomeTeam']}<span>–</span>{m['AwayTeam']}</div>
+                <div class="quand">{JOURS[m['Date'].dayofweek]} {m['Date']:%d/%m}{heure}</div></div>
+              <div class="duel-ligne"><span class="source">Modèle</span>
+                <div class="mini-barre">{mini_barre(chances_modele.loc[i])}</div></div>
+              <div class="duel-ligne"><span class="source">Bookmakers</span>
+                <div class="mini-barre">{mini_barre(chances_marche.loc[i])}</div></div>
+              <div class="duel-pied">{pied}</div></div>""")
+        st.html(f'<div class="journee">{"".join(cartes)}</div>')
+        st.caption("Chances des bookmakers : inverse des cotes moyennes du marché (à défaut, celles de "
+                   "Bet365), ramenées à 100 % pour retirer leur marge. Désaccord en rouge à partir de "
+                   "12 points d'écart."
+                   + (f" {inconnus} match(s) écarté(s) : club absent des résultats de la saison." if inconnus else ""))
+
+        with st.expander("Voir les chiffres"):
+            st.dataframe(
+                prochains[["Date", "Heure", "HomeTeam", "AwayTeam"]].assign(
+                    **{f"modele_{r}": chances_modele[r] * 100 for r in "HDA"},
+                    **{f"marche_{r}": chances_marche[r] * 100 for r in "HDA"}),
+                hide_index=True, width="stretch",
+                column_config={
+                    "Date": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                    "HomeTeam": "Domicile", "AwayTeam": "Extérieur",
+                    **{f"modele_{r}": st.column_config.NumberColumn(f"Modèle {t}", format="%.0f %%")
+                       for r, t in [("H", "1"), ("D", "N"), ("A", "2")]},
+                    **{f"marche_{r}": st.column_config.NumberColumn(f"Bookmakers {t}", format="%.0f %%")
+                       for r, t in [("H", "1"), ("D", "N"), ("A", "2")]},
+                })
 
 # ---------- La fin de saison ----------
 

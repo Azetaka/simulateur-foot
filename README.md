@@ -62,7 +62,8 @@ Les résultats viennent de [football-data.co.uk](https://www.football-data.co.uk
 
 - **Automatiquement** : au lancement, l'interface retélécharge la saison en cours si ses données ont plus de 12 h (quelques secondes). Sans réseau, elle continue avec les données locales et le signale.
 - **À la demande** : bouton « Mettre à jour » dans l'interface, ou `uv run simulateur-foot maj`.
-- **Sur GitHub** : la tâche [Mise à jour des données](.github/workflows/mise-a-jour-donnees.yml) tourne le mardi et le vendredi à 6 h UTC. Elle télécharge la saison en cours, lance les tests et commite `data/resultats.csv` sur `develop` s'il y a de nouveaux matchs. GitHub ne lance les tâches planifiées que depuis la branche par défaut : le fichier doit être présent sur `main`. Elle se lance aussi à la main depuis l'onglet Actions.
+- **Prochaine journée** : la même source publie en milieu de semaine les matchs du week-end suivant avec les cotes des bookmakers (`data/prochains_matchs.csv`, mis à jour en même temps que les résultats). L'onglet « Prochaine journée » compare les chances du modèle à celles des bookmakers, marge retirée.
+- **Sur GitHub** : la tâche [Mise à jour des données](.github/workflows/mise-a-jour-donnees.yml) tourne le mardi et le vendredi à 6 h UTC. Elle télécharge la saison en cours et la prochaine journée, lance les tests et commite `data/resultats.csv` et `data/prochains_matchs.csv` sur `develop` s'il y a du nouveau. GitHub ne lance les tâches planifiées que depuis la branche par défaut : le fichier doit être présent sur `main`. Elle se lance aussi à la main depuis l'onglet Actions.
 
 ## Ligne de commande
 
@@ -78,7 +79,7 @@ L'option `-c` choisit le championnat (`F1` Ligue 1 par défaut, `E0` Premier Lea
 | `uv run simulateur-foot modele` | Compare les modèles de prédiction (≈ 2 min) |
 | `uv run simulateur-foot simulation` | Simule la fin de la saison en cours dans le terminal |
 
-Seul `resultats.csv` est versionné : c'est la donnée source. Les autres fichiers de `data/` se recalculent.
+Seuls `resultats.csv` et `prochains_matchs.csv` sont versionnés : ce sont les données sources. Les autres fichiers de `data/` se recalculent.
 
 ## Organisation
 
