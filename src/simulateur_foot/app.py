@@ -15,13 +15,14 @@ from simulateur_foot.collecte_resultats import (FICHIER, FICHIER_PROCHAINS, char
                                                 heures_depuis_mise_a_jour, mettre_a_jour)
 from simulateur_foot import joueurs as stats_joueurs
 from simulateur_foot.logos import chemin_championnat, chemin_club, url as logos_url
-from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE, NOTE_PROMU
+from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE, NOTE_PROMU, evolution_recente
 from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT, evaluer,
                                     proba_frequences, proba_logistique_forces, selection)
 from simulateur_foot.prediction import (SAISON_EN_COURS, SAISONS_APPRENTISSAGE, chances_bookmakers,
                                         charger_forces, entrainer, probabilites)
-from simulateur_foot.simulation import (classement, matchs_restants, points_attendus, resume, simuler,
-                                        simuler_notes_evolutives)
+from simulateur_foot.scores import buts_attendus, entrainer_scores, grille_scores, tirer_scores
+from simulateur_foot.simulation import (classement, difficulte_calendrier, matchs_restants, points_attendus,
+                                        resume, simuler, simuler_notes_evolutives)
 
 # Jetons de couleur. Données : palette validée pour les daltoniens (domicile, nul, extérieur).
 THEMES = {
@@ -183,6 +184,27 @@ CSS = """
                           margin-right: .4rem; background: __accent__; vertical-align: middle; }
   .legende-classement i.clair { opacity: .25; }
   .legende-classement i.trait { height: 2px; background: __encre__; }
+  .sous-titre { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 600;
+                letter-spacing: .08em; text-transform: uppercase; color: __encre2__; margin: 1rem 0 .3rem; }
+  .scores-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 .5rem; }
+  .chip { display: inline-flex; align-items: baseline; gap: .45rem; background: __carte__; border: 1px solid __bord__;
+          border-radius: 6px; padding: .3rem .65rem; font-variant-numeric: tabular-nums; }
+  .chip b { font-family: 'Barlow Condensed', sans-serif; font-size: 1.35rem; color: __encre__; }
+  .chip span { color: __encre2__; font-size: .85rem; }
+  .chip.fort { border-color: __accent__; background: __accent_doux__; }
+  .resultat .score { font-size: 2.6rem; letter-spacing: .02em; }
+  .resultat .score small { font-size: 1.2rem; font-weight: 600; color: __encre2__; margin: 0 .5rem; }
+  .issue { color: __encre2__; margin: -.2rem 0 .6rem; }
+  .fr { grid-template-columns: 1.6rem 2.2rem minmax(8rem, 17rem) 1fr 4.4rem; }
+  .fr .ident span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .piste .repere { position: absolute; top: 0; height: 1.6rem; border-left: 2px dashed __encre2__; opacity: .8; }
+  .delta { justify-self: end; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.15rem;
+           padding: .1rem .45rem; border-radius: 4px; border: 1px solid __bord__; color: __encre2__;
+           min-width: 3.4rem; text-align: center; font-variant-numeric: tabular-nums; }
+  .delta.haut { color: #fff; background: __accent__; border-color: __accent__; }
+  .delta.bas { color: __encre__; border-style: dashed; }
+  .legende-classement i.repere-leg { width: 0; height: .9rem; border-left: 2px dashed __encre2__; background: none;
+                                     border-radius: 0; }
   @media (max-width: 1100px) {
     [data-testid="stMainBlockContainer"] { padding: 1.2rem 1rem 2.5rem; }
     .entete { grid-template-columns: 1fr; gap: 1rem; }
@@ -194,7 +216,13 @@ CSS = """
     .bandeau h1 { font-size: 2.3rem; }
     .bandeau .ecusson-ligue { display: none; }
     .entete { grid-template-columns: 1fr; gap: 1rem; }
-    .etapes { grid-template-columns: 1fr; }
+    .etapes { grid-template-columns: 1fr; gap: .4rem; }
+    .etape { padding: .45rem .8rem; }
+    .etape b { font-size: 1.1rem; }
+    .etape span { display: none; }
+    .fr { grid-template-columns: 1.4rem 1.8rem 1fr 3.6rem; }
+    .fr .piste { grid-column: 1 / -1; }
+    .fr .delta { grid-column: 4; grid-row: 1; }
     .affiche { grid-template-columns: 1fr; gap: .7rem; }
     .club.droite { align-items: flex-start; text-align: left; }
     .contre { display: none; }
@@ -273,6 +301,26 @@ def modele_retenu(code, version):
     return entrainer(matchs)
 
 
+@st.cache_resource
+def modele_scores_retenu(code, version):
+    matchs, _ = donnees(code, version)
+    return entrainer_scores(matchs)
+
+
+@st.cache_data
+def forces_du_jour(code, version):
+    """Chaque club avec sa note, sa variation sur 5 matchs, son rang au classement et son calendrier restant."""
+    matchs, notes = donnees(code, version)
+    saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
+    table = classement(saison)
+    forces = pd.DataFrame({"note": notes})
+    forces["variation"] = evolution_recente(saison, notes)
+    forces["rang"] = pd.Series({club: i + 1 for i, club in enumerate(table.index)})
+    forces["joues"] = table["joues"]
+    forces["calendrier"] = difficulte_calendrier(matchs_restants(saison), notes)
+    return forces.sort_values("note", ascending=False)
+
+
 @st.cache_data
 def forme_recente(code, version, club, nb=5):
     """Les derniers résultats du club cette saison, du plus ancien au plus récent (V, N, D)."""
@@ -290,14 +338,16 @@ def forme_recente(code, version, club, nb=5):
 
 
 @st.cache_data
-def fin_de_saison(code, version, nb, graine, evolutives=True):
+def fin_de_saison(code, version, nb, graine, evolutives=True, premiers=()):
+    """premiers : affiches annoncées pour la prochaine journée, jouées en premier dans chaque simulation."""
     matchs, notes = donnees(code, version)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
     table = classement(saison)
     restants = matchs_restants(saison)
     if evolutives:
         points, rangs = simuler_notes_evolutives(table, restants, notes, modele_retenu(code, version),
-                                                 nb, graine)
+                                                 nb, graine, modele_scores=modele_scores_retenu(code, version),
+                                                 premiers=set(premiers))
     else:
         proba = probabilites(modele_retenu(code, version), restants["HomeTeam"].map(notes).to_numpy(),
                              restants["AwayTeam"].map(notes).to_numpy())
@@ -311,6 +361,7 @@ def fin_de_saison(code, version, nb, graine, evolutives=True):
     fourchette["prevus"] = points_attendus(saison, proba_jouees)
     # Arrondi au dixième, + 0.0 pour éviter d'afficher « -0.0 »
     fourchette["ecart"] = (table["points"] - fourchette["prevus"]).round(1) + 0.0
+    fourchette["calendrier"] = difficulte_calendrier(restants, notes)
     return synthese.join(fourchette), rangs, list(table.index), len(restants)
 
 
@@ -422,10 +473,11 @@ st.html(f"""
 <div class="etapes">
   <div class="etape"><b><span class="num">1</span>Une note par club</b>
     <span>Chaque club a une note Elo : il gagne des points quand il bat un adversaire, il en perd
-    quand il s'incline. Plus la surprise est grande, plus la note bouge. 1500 = club moyen.</span></div>
+    quand il s'incline. Plus la surprise est grande, et plus la victoire est large, plus la note bouge.
+    1500 = club moyen.</span></div>
   <div class="etape"><b><span class="num">2</span>Des probabilités par match</b>
     <span>L'écart de notes entre les deux clubs, plus un bonus pour l'équipe qui reçoit, donne
-    les chances de victoire, de nul et de défaite.</span></div>
+    les chances de victoire, de nul et de défaite, puis celles de chaque score.</span></div>
   <div class="etape"><b><span class="num">3</span>Des milliers de saisons</b>
     <span>On joue au hasard tous les matchs restants, selon ces chances, des milliers de fois.
     On compte ensuite combien de fois chaque club finit champion, en haut du tableau ou relégué.</span></div>
@@ -448,8 +500,13 @@ if st.session_state.verification:
     (st.success if etat == "ok" else st.warning)(message)
     st.session_state.verification = None
 
-onglet_match, onglet_journee, onglet_saison, onglet_joueurs, onglet_fiabilite = st.tabs(
-    ["Un match", "Prochaine journée", "La fin de saison", "Les meilleurs joueurs", "Le modèle est-il fiable ?"])
+version_prochains = FICHIER_PROCHAINS.stat().st_mtime if FICHIER_PROCHAINS.exists() else 0
+prochains, chances_modele, chances_marche, inconnus = prochaine_journee(code, version, version_prochains)
+affiches_annoncees = tuple(sorted(zip(prochains["HomeTeam"], prochains["AwayTeam"])))
+
+onglet_match, onglet_forces, onglet_journee, onglet_saison, onglet_joueurs, onglet_fiabilite = st.tabs(
+    ["Un match", "Les forces du moment", "Prochaine journée", "La fin de saison", "Les meilleurs joueurs",
+     "Le modèle est-il fiable ?"])
 
 # ---------- Un match ----------
 
@@ -457,7 +514,7 @@ with onglet_match:
     explication("Choisissez deux clubs : le simulateur donne les chances de chaque issue si ce match "
                 "se jouait aujourd'hui. Ce sont des chances, pas une certitude : un club donné "
                 "gagnant à 60 % perd ou fait nul 4 fois sur 10. Le bouton « Jouer le match » "
-                "le montre en le tirant au sort.")
+                "le montre en tirant un score au sort.")
 
     gauche, droite = st.columns([5, 6], gap="large")
     clubs = list(notes.index)
@@ -492,23 +549,54 @@ with onglet_match:
                    f"{AVANTAGE_TERRAIN} points accordé au club qui reçoit. Forme : V = victoire, "
                    "N = nul, D = défaite, sur les 5 derniers matchs de la saison.")
 
+        # Grille des scores : loi de Poisson sur les notes, recalée sur les chances ci-dessus
+        grille = grille_scores(modele_scores_retenu(code, version), modele_retenu(code, version),
+                               np.array([notes[dom]]), np.array([notes[ext]]))[0]
+        mu_dom, mu_ext = buts_attendus(modele_scores_retenu(code, version), [notes[dom]], [notes[ext]])
+        meilleurs = np.dstack(np.unravel_index(np.argsort(-grille.ravel())[:5], grille.shape))[0]
+        chips = "".join(f'<div class="chip{" fort" if i == 0 else ""}"><b>{bd}–{be}</b>'
+                        f'<span>{pourcent(grille[bd, be])}</span></div>' for i, (bd, be) in enumerate(meilleurs))
+        st.html(f'<div class="sous-titre">Les scores les plus probables</div><div class="scores-chips">{chips}</div>')
+        st.caption(f"Buts attendus : {decimal(mu_dom[0], 1)} pour {dom}, {decimal(mu_ext[0], 1)} pour {ext}. "
+                   "Chaque case ci-dessous donne la chance d'un score exact ; les cases d'une même "
+                   "issue (victoire, nul, défaite) totalisent les chances annoncées plus haut.")
+        cellules = pd.DataFrame([(bd, be, grille[bd, be]) for bd in range(6) for be in range(6)],
+                                columns=["dom", "ext", "probabilite"])
+        axes = dict(x=alt.X("dom:O", title=f"Buts de {dom}", axis=alt.Axis(labelAngle=0, orient="top")),
+                    y=alt.Y("ext:O", title=f"Buts de {ext}"))
+        cases = alt.Chart(cellules).mark_rect(stroke=c["fond"], strokeWidth=2, cornerRadius=3).encode(
+            **axes, color=alt.Color("probabilite:Q", legend=None,
+                                    scale=alt.Scale(range=c["seq"], domain=[0, 0.03, 0.07, 0.12], clamp=True,
+                                                    interpolate="lab")),
+            tooltip=[alt.Tooltip("dom:O", title=f"Buts de {dom}"), alt.Tooltip("ext:O", title=f"Buts de {ext}"),
+                     alt.Tooltip("probabilite:Q", format=".1%", title="Chance")])
+        etiquettes = alt.Chart(cellules).mark_text(fontSize=12, fontWeight=600).encode(
+            **axes, text=alt.Text("probabilite:Q", format=".0%"),
+            color=alt.condition(alt.datum.probabilite > 0.05, alt.value(c["fond"]), alt.value(c["encre"])))
+        st.altair_chart((cases + etiquettes).properties(height=250), width="stretch")
+
         if "tirage" not in st.session_state:
             st.session_state.tirage = None
         if st.button("Jouer le match", type="primary"):
             st.session_state.tirage = int(np.random.default_rng().integers(1_000_000))
         if st.session_state.tirage is not None:
             generateur = np.random.default_rng(st.session_state.tirage)
-            issues = generateur.choice(RESULTATS, size=100, p=proba[RESULTATS].to_numpy())
+            buts_dom, buts_ext = tirer_scores(grille, generateur, nb=100)
+            issues = np.where(buts_dom > buts_ext, "H", np.where(buts_dom == buts_ext, "D", "A"))
             issue = issues[0]
             texte = {"H": f"Victoire de {dom}", "D": "Match nul", "A": f"Victoire de {ext}"}[issue]
             st.html(f'<div class="resultat"><span class="pastille" style="background:{c[issue]};'
-                    f'width:1.1rem;height:1.1rem;margin:0"></span>{texte}</div>')
+                    f'width:1.1rem;height:1.1rem;margin:0"></span><span class="score">{dom}<small>{buts_dom[0]} – '
+                    f'{buts_ext[0]}</small>{ext}</span></div><div class="issue">{texte}</div>')
             comptes = {r: int((issues == r).sum()) for r in ["H", "D", "A"]}
+            scores = pd.Series(list(zip(buts_dom, buts_ext))).value_counts()
+            (sd, se), frequence = scores.index[0], int(scores.iloc[0])
             cases = "".join(f'<div style="background:{c[r]}"></div>' for r in ["H", "D", "A"]
                             for _ in range(comptes[r]))
             st.markdown(f"**Et si on le jouait 100 fois ?** {dom} gagne {comptes['H']} fois, "
-                        f"{comptes['D']} nuls, {ext} gagne {comptes['A']} fois. Relancez : "
-                        "les chiffres bougent un peu, mais restent proches des chances annoncées.")
+                        f"{comptes['D']} nuls, {ext} gagne {comptes['A']} fois ; le score qui revient le plus "
+                        f"est {sd}–{se} ({frequence} fois). Relancez : les chiffres bougent un peu, mais "
+                        "restent proches des chances annoncées.")
             st.html(f'<div class="gaufre">{cases}</div>')
 
     with droite:
@@ -559,6 +647,64 @@ with onglet_match:
                 hide_index=True, width="stretch",
                 column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY")})
 
+# ---------- Les forces du moment ----------
+
+with onglet_forces:
+    explication("Les clubs rangés par leur note Elo d'aujourd'hui, celle qui sert à tous les calculs. Le "
+                "classement récompense les points déjà pris ; la note, elle, juge la force actuelle : qui a "
+                "battu qui, par quel écart, et contre quelle opposition. Quand les deux divergent, c'est un club "
+                "en avance ou en retard sur son niveau réel. La variation à droite donne la tendance sur les "
+                "5 derniers matchs.", titre="Comment lire ce classement")
+    forces = forces_du_jour(code, version)
+    plus_fort, en_forme, en_peine = forces.index[0], forces["variation"].idxmax(), forces["variation"].idxmin()
+    f1, f2, f3 = st.columns(3)
+    chiffre_cle(f1, "Le plus fort aujourd'hui", ecusson(chemin_club(code, plus_fort)) + plus_fort,
+                f"Note {forces.loc[plus_fort, 'note']:.0f} · {rang(int(forces.loc[plus_fort, 'rang']))} du classement")
+    chiffre_cle(f2, "En pleine forme", ecusson(chemin_club(code, en_forme)) + en_forme,
+                f"{forces.loc[en_forme, 'variation']:+.0f} points sur ses 5 derniers matchs")
+    chiffre_cle(f3, "En difficulté", ecusson(chemin_club(code, en_peine)) + en_peine,
+                f"{forces.loc[en_peine, 'variation']:+.0f} points sur ses 5 derniers matchs")
+
+    bas, haut = forces["note"].min() - 30, forces["note"].max() + 30
+    pct = lambda valeur: f"{(valeur - bas) / (haut - bas) * 100:.2f}"
+    lignes = []
+    for i, (club, ligne) in enumerate(forces.iterrows(), start=1):
+        avance = int(ligne.rang) - i  # positif : mieux noté que classé
+        commentaire = (" · mieux que son classement" if avance >= 2 else
+                       " · moins bien que son classement" if avance <= -2 else "")
+        classe = "haut" if ligne.variation >= 10 else "bas" if ligne.variation <= -10 else ""
+        logo = ecusson(chemin_club(code, club), alt=club)
+        lignes.append(f"""
+<div class="jr fr">
+  <div class="rang">{i}</div>{logo}
+  <div class="ident"><b>{html.escape(club)}</b><span>{rang(int(ligne.rang))} du classement{commentaire}</span></div>
+  <div class="piste">
+    <div class="repere" style="left:{pct(NOTE_INITIALE)}%" title="{NOTE_INITIALE} : club moyen"></div>
+    <div class="actuel" style="width:{pct(ligne.note)}%"></div>
+    <span class="val" style="left:{pct(ligne.note)}%">{ligne.note:.0f}</span>
+  </div>
+  <div class="delta {classe}" title="Variation de la note sur les 5 derniers matchs">{ligne.variation:+.0f}</div>
+  <div class="bulle">
+    <div class="tete">{logo}<div><b>{html.escape(club)}</b><span>{rang(i)} à la note, {rang(int(ligne.rang))} au classement</span></div></div>
+    <dl>
+      <dt>Note Elo</dt><dd class="fort">{ligne.note:.0f}</dd>
+      <dt>5 derniers matchs</dt><dd>{ligne.variation:+.0f} points</dd>
+      <dt>Matchs joués</dt><dd>{int(ligne.joues)}</dd>
+      <dt>Adversaires restants</dt><dd>{ligne.calendrier:.0f} en moyenne</dd>
+    </dl>
+  </div>
+</div>""")
+    st.html('<div class="legende-classement"><span><i></i>Note Elo aujourd\'hui</span>'
+            f'<span><i class="repere-leg"></i>{NOTE_INITIALE}, un club moyen</span>'
+            '<span>Variation sur 5 matchs : <b>plein</b> en hausse de 10 points ou plus, '
+            '<b>pointillé</b> en baisse de 10 ou plus</span></div>'
+            f'<div class="classement">{"".join(lignes)}</div>')
+    dur, facile = forces["calendrier"].idxmax(), forces["calendrier"].idxmin()
+    st.caption(f"Un club qui n'était pas dans le championnat la saison passée démarre à {NOTE_PROMU}. "
+               f"Survolez un club pour le détail. Calendrier restant le plus dur : {dur} (adversaires notés "
+               f"{forces.loc[dur, 'calendrier']:.0f} en moyenne, terrain compris), le plus abordable : {facile} "
+               f"({forces.loc[facile, 'calendrier']:.0f}).")
+
 # ---------- Prochaine journée ----------
 
 with onglet_journee:
@@ -567,9 +713,6 @@ with onglet_journee:
                 "cotes moyennes. Les bookmakers savent ce que le modèle ignore : blessures, suspensions, "
                 "rotation de l'effectif. Quand les deux divergent nettement, c'est souvent là que le "
                 "modèle manque une information.")
-    version_prochains = FICHIER_PROCHAINS.stat().st_mtime if FICHIER_PROCHAINS.exists() else 0
-    prochains, chances_modele, chances_marche, inconnus = prochaine_journee(code, version, version_prochains)
-
     if prochains.empty:
         st.info("Aucun match annoncé pour l'instant. La source publie la prochaine journée en général "
                 "en milieu de semaine : le bouton « Mettre à jour » va la chercher.")
@@ -642,12 +785,13 @@ with onglet_journee:
 # ---------- La fin de saison ----------
 
 with onglet_saison:
-    explication("Le simulateur part du classement actuel et joue au hasard tous les matchs qui restent, "
-                "selon les chances de chaque affiche. Il recommence des milliers de fois. Si un club "
+    explication("Le simulateur part du classement actuel et tire au sort le score de tous les matchs qui "
+                "restent, selon les chances de chaque affiche. Il recommence des milliers de fois. Si un club "
                 "finit champion dans 6 500 saisons simulées sur 10 000, ses chances de titre sont "
-                "de 65 %. Après chaque journée tirée au sort, les notes des clubs sont mises à "
+                "de 65 %. Après chaque match tiré au sort, les notes des clubs sont mises à "
                 "jour comme après un vrai match : un club qui enchaîne les victoires devient favori "
-                "des journées suivantes, comme dans la réalité.")
+                "des journées suivantes, comme dans la réalité. La prochaine journée annoncée est jouée "
+                "en premier.")
 
     r1, r2, k1, k2, k3 = st.columns([1.5, .8, 1, 1, 1], vertical_alignment="bottom")
     nb = r1.select_slider("Nombre de saisons simulées", [1_000, 5_000, 10_000, 50_000], value=10_000,
@@ -658,7 +802,8 @@ with onglet_saison:
         "Les notes évoluent pendant la saison simulée", value=True,
         help="Désactivé, chaque club garde sa note du jour jusqu'à la fin : les séries ne se "
              "prolongent pas et la simulation est trop sûre d'elle. Pratique pour comparer.")
-    synthese, rangs, ordre_clubs, nb_restants = fin_de_saison(code, version, nb, graine, evolutives)
+    synthese, rangs, ordre_clubs, nb_restants = fin_de_saison(code, version, nb, graine, evolutives,
+                                                              affiches_annoncees if evolutives else ())
     nb_clubs = len(ordre_clubs)
 
     favori = synthese["titre"].idxmax()
@@ -750,7 +895,8 @@ with onglet_saison:
         titre, help=aide, format="%.0f\u00a0%%", min_value=0, max_value=100)
     place_barrage = nb_clubs - regles.relegues
     st.dataframe(
-        tableau[["logo", "club", "rang", "joues", "points", "prevus", "ecart", "diff_buts", "points_finaux"] + probas],
+        tableau[["logo", "club", "rang", "joues", "points", "prevus", "ecart", "diff_buts", "points_finaux",
+                 "calendrier"] + probas],
         hide_index=True, width="stretch", height=36 * (len(tableau) + 1) + 3,
         column_config={
             "logo": st.column_config.ImageColumn("Logo", width="small", pinned=True),
@@ -766,6 +912,10 @@ with onglet_saison:
             "diff_buts": st.column_config.NumberColumn("Diff.", format="%+d", help="Différence de buts"),
             "points_finaux": st.column_config.NumberColumn("Pts attendus", format="%.0f",
                                                            help="Points moyens en fin de saison"),
+            "calendrier": st.column_config.NumberColumn("Calendrier", format="%.0f",
+                                                        help="Note moyenne des adversaires restants, terrain "
+                                                             "compris : plus c'est haut, plus la fin de saison "
+                                                             "est dure"),
             "titre": progression("Champion", "1ʳᵉ place"),
             "haut": progression(regles.haut[0], f"{regles.haut[1]} premières places"),
             "barrage": progression("Barrage", f"{place_barrage}ᵉ place : {regles.barrage_aide}"),
@@ -778,11 +928,13 @@ with onglet_saison:
     with st.expander("Hypothèses et limites de la simulation"):
         st.markdown(
             "- Les notes **évoluent** dans chaque saison simulée, avec la même règle Elo que pour les "
-            "vrais matchs. Le calendrier des matchs restants n'est pas connu : l'ordre des affiches "
-            "est tiré au hasard, en journées où chaque club joue au plus une fois. Avec les notes "
-            "figées (interrupteur en haut), la simulation est plus sûre d'elle.\n"
-            "- Le simulateur tire l'**issue** de chaque match (victoire, nul, défaite), pas le score. "
-            "À égalité de points, les clubs sont départagés par leur différence de buts actuelle, "
+            "vrais matchs, écart de buts compris. Seule la prochaine journée annoncée est connue : "
+            "elle est jouée en premier, puis l'ordre des autres affiches est tiré au hasard, en journées "
+            "où chaque club joue au plus une fois. Avec les notes figées (interrupteur en haut), la "
+            "simulation est plus sûre d'elle.\n"
+            "- Le simulateur tire l'**issue** de chaque match (victoire, nul, défaite) selon la régression "
+            "logistique, puis son **écart de buts** selon le modèle de score (loi de Poisson). "
+            "À égalité de points, les clubs sont départagés par leur différence de buts simulée, "
             f"puis au hasard. En {regles.nom}, le vrai règlement départage d'abord par "
             f"{regles.departage}.\n"
             f"- Un club qui n'était pas dans le championnat la saison précédente démarre à "

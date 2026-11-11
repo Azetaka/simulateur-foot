@@ -65,3 +65,18 @@ La régression logistique de la référence 2 ne convergeait pas : les notes bru
 - **Rodage court** : 2122 est la seule saison de rodage. Le premier pli de validation apprend sur 2223 avec des notes encore en train de converger, ce qui peut pénaliser le réglage.
 - **Peu de données pour un boosting** (992 matchs). Un modèle linéaire avec les variables de forme ferait peut-être mieux, mais il faudrait gérer les valeurs manquantes autrement que par imputation (par exemple un modèle à part pour le premier match de chaque club). Je ne l'ai pas tenté.
 - Le changement de format du championnat (20 clubs en 2223, 18 ensuite) mélange deux contextes un peu différents dans l'entraînement.
+
+## Mise à jour (écart de buts et modèle de score)
+
+**L'Elo tient compte de l'écart de buts.** La correction après un match est multipliée par 1 + 0,5 × (écart − 1) : un nul ou une victoire d'un but comptent pour 1, deux buts d'écart pour 1,5, trois pour 2, etc. (`force_clubs.POIDS_ECART`, dans la grille de `reglage_force.py`). Vérification par validation temporelle sur les six championnats, avec la logistique sur les forces entraînée sur les saisons précédentes :
+
+| Variante (K = 20) | Log-loss 2324 | Log-loss 2425 | Moyenne validation | Log-loss test 2526 |
+|---|---|---|---|---|
+| Sans pondération (avant) | 1,0039 | 1,0005 | 1,0022 | 1,0124 |
+| Poids 0,25 | 1,0015 | 1,0004 | 1,0009 | 1,0101 |
+| **Poids 0,5 (retenu)** | **1,0007** | **1,0011** | **1,0009** | **1,0091** |
+| Poids 1,0 | 1,0008 | 1,0030 | 1,0019 | 1,0089 |
+
+Chiffres moyennés sur les six championnats. Le poids a été choisi sur les deux saisons de validation, avant de regarder la saison test ; sur celle-ci, la variante retenue fait mieux que l'ancienne dans les six championnats. Plafonner l'écart à 3 buts n'apporte rien. L'écart reste petit (≈ 0,001 à 0,003 de log-loss), du même ordre que le bruit : c'est une amélioration modeste mais constante.
+
+**Modèle de score.** Deux régressions de Poisson sur les deux notes (buts du club qui reçoit, buts de l'autre) donnent les buts attendus, puis une grille de probabilités par score (`scores.py`). Pour l'issue du match, ce modèle ne bat pas la logistique : sur la saison test, il fait mieux dans quatre championnats et moins bien dans deux, et il sous-estime les nuls. Il n'est donc pas utilisé seul : la grille est **recalée région par région** (défaite, nul, victoire) sur les chances de la logistique. Il sert à afficher les scores probables, à tirer un score dans « Jouer le match », et à tirer l'écart de buts de chaque match simulé, qui alimente la différence de buts (départage) et la mise à jour Elo pondérée.

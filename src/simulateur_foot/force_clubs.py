@@ -1,5 +1,12 @@
-"""Calcule la force (note Elo) de chaque club avant chacun de ses matchs."""
+"""Calcule la force (note Elo) de chaque club avant chacun de ses matchs.
 
+Après chaque match, le vainqueur prend des points au vaincu : d'autant plus que
+le résultat était inattendu, et d'autant plus que la victoire est large. Une
+victoire d'un but (ou un nul) compte pour 1, de deux buts pour 1,5, de trois
+buts pour 2, etc. (POIDS_ECART). Réglage : reglage_force.py.
+"""
+
+import numpy as np
 import pandas as pd
 
 from .collecte_resultats import DOSSIER_DATA, FICHIER
@@ -9,6 +16,7 @@ AVANTAGE_TERRAIN = 40
 NOTE_INITIALE = 1500
 NOTE_PROMU = 1400
 RETOUR_MOYENNE = 0.0
+POIDS_ECART = 0.5  # points de K en plus par but d'écart au-delà du premier
 SCORE_REEL = {"H": 1.0, "D": 0.5, "A": 0.0}
 
 
@@ -16,6 +24,11 @@ def score_attendu(note_dom, note_ext, avantage_terrain=AVANTAGE_TERRAIN):
     """Score attendu de l'équipe à domicile, entre 0 et 1."""
     ecart = note_dom + avantage_terrain - note_ext
     return 1 / (1 + 10 ** (-ecart / 400))
+
+
+def facteur_ecart(ecart_buts, poids_ecart=POIDS_ECART):
+    """Multiplicateur de la correction Elo selon l'écart de buts (1 pour un nul ou un but d'écart)."""
+    return 1 + poids_ecart * np.maximum(np.abs(ecart_buts) - 1, 0)
 
 
 def notes_debut_saison(notes, clubs_saison, clubs_saison_precedente,
@@ -43,7 +56,7 @@ def charger_matchs(championnat="F1"):
 
 
 def calculer_forces(matchs, k=K, avantage_terrain=AVANTAGE_TERRAIN,
-                    note_promu=NOTE_PROMU, retour_moyenne=RETOUR_MOYENNE):
+                    note_promu=NOTE_PROMU, retour_moyenne=RETOUR_MOYENNE, poids_ecart=POIDS_ECART):
     """Renvoie les matchs avec les notes d'avant-match, et les notes finales."""
     matchs = matchs.copy()
     notes = {}
@@ -71,7 +84,8 @@ def calculer_forces(matchs, k=K, avantage_terrain=AVANTAGE_TERRAIN,
             # Mise à jour après le match
             attendu = score_attendu(notes[dom], notes[ext], avantage_terrain)
             attendus.append(attendu)
-            correction = k * (SCORE_REEL[match.FTR] - attendu)
+            correction = (k * facteur_ecart(match.FTHG - match.FTAG, poids_ecart)
+                          * (SCORE_REEL[match.FTR] - attendu))
             notes[dom] += correction
             notes[ext] -= correction
 
@@ -83,6 +97,21 @@ def calculer_forces(matchs, k=K, avantage_terrain=AVANTAGE_TERRAIN,
     matchs["promu_ext"] = promu_ext
     matchs["score_attendu"] = attendus
     return matchs, notes
+
+
+def evolution_recente(matchs_saison, notes, nb=5):
+    """Variation de la note de chaque club sur ses `nb` derniers matchs de la saison."""
+    variations = {}
+    for club, note in notes.items():
+        siens = matchs_saison[(matchs_saison["HomeTeam"] == club) | (matchs_saison["AwayTeam"] == club)]
+        siens = siens.sort_values("Date").tail(nb)
+        if siens.empty:
+            variations[club] = 0.0
+            continue
+        premier = siens.iloc[0]
+        avant = premier["force_dom"] if premier["HomeTeam"] == club else premier["force_ext"]
+        variations[club] = note - avant
+    return pd.Series(variations)
 
 
 def main(championnat="F1"):

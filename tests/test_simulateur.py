@@ -5,13 +5,16 @@ import pandas as pd
 import pytest
 
 from simulateur_foot.championnats import CHAMPIONNATS
-from simulateur_foot.force_clubs import NOTE_INITIALE, calculer_forces, score_attendu
+from simulateur_foot.force_clubs import (NOTE_INITIALE, calculer_forces, evolution_recente, facteur_ecart,
+                                         score_attendu)
 from simulateur_foot.modele import pertes_brier, pertes_log
 from simulateur_foot.modele import creer_logistique
 from simulateur_foot import collecte_resultats
 from simulateur_foot.prediction import chances_bookmakers, probabilites, probabilites_tableau
-from simulateur_foot.simulation import (calendrier, classement, matchs_restants, points_attendus, resume,
-                                        simuler, simuler_notes_evolutives)
+from simulateur_foot.scores import (ECARTS, MAX_BUTS, REGIONS, distribution_ecarts, entrainer_scores,
+                                    grille_scores, tirer_ecarts, tirer_scores)
+from simulateur_foot.simulation import (calendrier, classement, difficulte_calendrier, matchs_restants,
+                                        points_attendus, resume, simuler, simuler_notes_evolutives)
 from simulateur_foot.variables import ajouter_variables, table_par_club
 
 
@@ -45,6 +48,33 @@ def test_elo_somme_nulle_et_notes_avant_match():
     # D n'était pas là la saison d'avant : c'est un promu
     assert matchs.loc[4, "promu_dom"] == 1 and matchs.loc[4, "promu_ext"] == 0
     assert set(notes) == {"A", "B", "D"}
+
+
+def test_facteur_ecart():
+    # Un nul ou un but d'écart comptent pour 1 ; chaque but de plus ajoute la moitié
+    assert facteur_ecart(np.array([0, 1, -1, 2, -3, 5])).tolist() == [1, 1, 1, 1.5, 2, 3]
+    assert facteur_ecart(4, poids_ecart=0) == 1
+
+
+def test_victoire_large_bouge_plus_la_note():
+    matchs = matchs_exemple()
+    etroite, _ = calculer_forces(matchs)
+    matchs.loc[0, "FTHG"] = 4  # A gagne 4-0 au lieu de 2-0
+    large, _ = calculer_forces(matchs)
+    assert large.loc[2, "force_ext"] > etroite.loc[2, "force_ext"]  # A se déplace au match suivant
+    # Sans pondération, l'écart de buts ne change rien
+    sans, _ = calculer_forces(matchs, poids_ecart=0)
+    assert sans["force_ext"].tolist() == pytest.approx(calculer_forces(matchs_exemple(), poids_ecart=0)[0]["force_ext"].tolist())
+
+
+def test_evolution_recente():
+    matchs, notes = calculer_forces(matchs_exemple())
+    saison = matchs[matchs["Saison"] == 2425]
+    variations = evolution_recente(saison, notes, nb=5)
+    # A a joué deux matchs en 2425 : sa note a bougé depuis le premier
+    premiere_note = saison.iloc[0]["force_dom"]
+    assert variations["A"] == pytest.approx(notes["A"] - premiere_note)
+    assert variations["D"] == pytest.approx(notes["D"] - saison.iloc[1]["force_dom"])
 
 
 def test_forme_ne_voit_pas_le_match_lui_meme():
@@ -130,6 +160,71 @@ def test_probabilites_tableau_identiques_a_scikit_learn():
     assert probabilites_tableau(modele, dom, ext) == pytest.approx(attendu)
     # Forme quelconque : (simulations × matchs)
     assert probabilites_tableau(modele, np.tile(dom, (4, 1)), np.tile(ext, (4, 1))).shape == (4, 3, 3)
+
+
+def scores_jouet():
+    """Régressions de Poisson entraînées sur des buts tirés au hasard : le favori marque plus."""
+    generateur = np.random.default_rng(2)
+    dom, ext = generateur.normal(1500, 100, 3000), generateur.normal(1500, 100, 3000)
+    matchs = pd.DataFrame({"force_dom": dom, "force_ext": ext, "Saison": 2425,
+                           "FTHG": generateur.poisson(np.exp(0.4 + (dom - ext) / 400)),
+                           "FTAG": generateur.poisson(np.exp(0.1 - (dom - ext) / 400))})
+    return entrainer_scores(matchs, saisons=[2425])
+
+
+def test_grille_scores_recalee_sur_la_logistique():
+    modele, modele_scores = modele_jouet(), scores_jouet()
+    dom, ext = np.array([1400.0, 1650]), np.array([1600.0, 1450])
+    grille = grille_scores(modele_scores, modele, dom, ext)
+    assert grille.shape == (2, MAX_BUTS + 1, MAX_BUTS + 1)
+    assert grille.sum(axis=(1, 2)) == pytest.approx([1, 1])
+    # Chaque région (défaite, nul, victoire du club qui reçoit) pèse ce que dit la logistique
+    attendu = probabilites(modele, dom, ext)
+    for i, (issue, masque) in enumerate(REGIONS.items()):
+        assert (grille * masque).sum(axis=(1, 2)) == pytest.approx(attendu[issue].to_numpy())
+    # Le favori à domicile a plus de chances de gagner 2-0 que de perdre 0-2
+    assert grille[1, 2, 0] > grille[1, 0, 2]
+    ecarts = distribution_ecarts(grille)
+    assert ecarts.sum(axis=1) == pytest.approx([1, 1])
+    assert ecarts[:, ECARTS > 0].sum(axis=1) == pytest.approx(attendu["H"].to_numpy())
+
+
+def test_tirages_de_scores_et_d_ecarts():
+    modele, modele_scores = modele_jouet(), scores_jouet()
+    generateur = np.random.default_rng(0)
+    notes_dom, notes_ext = np.full(20_000, 1650.0), np.full(20_000, 1450.0)
+    ecarts = tirer_ecarts(modele_scores, modele, notes_dom, notes_ext, generateur)
+    attendu = probabilites(modele, [1650.0], [1450.0]).iloc[0]
+    assert (ecarts > 0).mean() == pytest.approx(attendu["H"], abs=0.02)
+    assert (ecarts == 0).mean() == pytest.approx(attendu["D"], abs=0.02)
+    grille = grille_scores(modele_scores, modele, np.array([1650.0]), np.array([1450.0]))[0]
+    buts_dom, buts_ext = tirer_scores(grille, generateur, nb=20_000)
+    assert ((buts_dom == 1) & (buts_ext == 0)).mean() == pytest.approx(grille[1, 0], abs=0.02)
+
+
+def test_calendrier_joue_d_abord_les_matchs_annonces():
+    _, restants = ligue_de_six()
+    journee = calendrier(restants, graine=1, premiers={("C0", "C1"), ("C2", "C3")})
+    annonces = restants.apply(lambda m: (m["HomeTeam"], m["AwayTeam"]) in {("C0", "C1"), ("C2", "C3")}, axis=1)
+    assert set(journee[annonces]) == {0}
+
+
+def test_difficulte_calendrier():
+    _, restants = ligue_de_six()
+    notes = {f"C{i}": 1500 + 50 * i for i in range(6)}
+    difficulte = difficulte_calendrier(restants, notes, avantage_terrain=40)
+    # C0 affronte les cinq autres chez lui (note − 40) et chez eux (note + 40) : la moyenne est leur note moyenne
+    assert difficulte["C0"] == pytest.approx(np.mean([1550, 1600, 1650, 1700, 1750]))
+    assert difficulte["C5"] < difficulte["C0"]
+
+
+def test_notes_evolutives_avec_scores():
+    table, restants = ligue_de_six()
+    notes = {f"C{i}": 1500 for i in range(6)}
+    points, rangs = simuler_notes_evolutives(table, restants, notes, modele_jouet(), nb=500,
+                                             modele_scores=scores_jouet())
+    assert ((points.sum(axis=1) >= 60) & (points.sum(axis=1) <= 90)).all()
+    assert sorted(rangs[0]) == [1, 2, 3, 4, 5, 6]
 
 
 def ligue_de_six():
