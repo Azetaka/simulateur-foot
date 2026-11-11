@@ -189,3 +189,20 @@ def test_prochains_matchs_sans_ceux_deja_joues(tmp_path, monkeypatch):
     # Pas de fichier : tableau vide, pas d'erreur
     monkeypatch.setattr(collecte_resultats, "FICHIER_PROCHAINS", tmp_path / "absent.csv")
     assert collecte_resultats.charger_prochains_matchs("F1", saison).empty
+
+
+def test_recadrer_ecusson(tmp_path):
+    from PIL import Image
+
+    from simulateur_foot.logos import recadrer
+
+    # Dessin de 40 × 20 pixels au milieu d'une image de 200 × 200 presque vide
+    chemin = tmp_path / "club.png"
+    image = Image.new("RGBA", (200, 200))
+    image.paste(Image.new("RGBA", (40, 20), (200, 30, 30, 255)), (80, 90))
+    image.save(chemin)
+    assert recadrer(chemin)
+    with Image.open(chemin) as resultat:
+        assert resultat.size == (42, 22)  # le dessin, plus une marge de 1 pixel (3 % de 40)
+        assert resultat.getchannel("A").getbbox() == (1, 1, 41, 21)
+    assert not recadrer(chemin)  # deuxième passage : rien ne change

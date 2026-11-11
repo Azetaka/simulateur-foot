@@ -14,12 +14,15 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from PIL import Image
 
 from simulateur_foot.collecte_resultats import FICHIER
 
 DOSSIER = Path(__file__).resolve().parent / "static" / "logos"  # servi par Streamlit sous /app/static/logos
 API = "https://www.thesportsdb.com/api/v1/json/123"  # clé de test publique de TheSportsDB
 PAUSE = 3  # secondes entre deux requêtes (la clé de test est limitée)
+TAILLE_MAX = 256  # côté maximal des images enregistrées, en pixels
+MARGE = 0.03  # marge transparente gardée autour du dessin, en part du plus grand côté
 
 # Identifiants TheSportsDB des championnats
 LIGUES = {"F1": 4334, "E0": 4328, "SP1": 4335, "D1": 4331, "I1": 4332, "F2": 4401}
@@ -100,6 +103,36 @@ def _enregistrer(session, url, destination):
     reponse = session.get(url, timeout=30)
     reponse.raise_for_status()
     destination.write_bytes(reponse.content)
+    recadrer(destination)
+
+
+def recadrer(chemin):
+    """Recadre l'écusson au plus près du dessin, avec une petite marge, et limite sa taille.
+
+    Les sources livrent des images de formats variés (139 × 181, 512 × 512) avec plus ou moins
+    de marge transparente : à taille d'affichage égale, certains écussons paraissaient minuscules.
+    Renvoie True si l'image a changé.
+    """
+    with Image.open(chemin) as source:
+        image = source.convert("RGBA")
+    cadre = image.getchannel("A").point(lambda a: 255 if a > 16 else 0).getbbox()
+    if cadre is None:
+        return False
+    dessin = image.crop(cadre)
+    marge = round(max(dessin.size) * MARGE)
+    ecarts = (cadre[0], cadre[1], image.width - cadre[2], image.height - cadre[3])
+    if max(image.size) <= TAILLE_MAX and max(ecarts) <= marge + 2:
+        return False  # déjà recadré : ne pas rogner le bord adouci à chaque passage
+    resultat = Image.new("RGBA", (dessin.width + 2 * marge, dessin.height + 2 * marge))
+    resultat.paste(dessin, (marge, marge))
+    resultat.thumbnail((TAILLE_MAX, TAILLE_MAX), Image.Resampling.LANCZOS)
+    resultat.save(chemin, optimize=True)
+    return True
+
+
+def recadrer_tous():
+    """Applique recadrer aux écussons déjà téléchargés ; renvoie le nombre d'images modifiées."""
+    return sum(recadrer(chemin) for chemin in sorted(DOSSIER.rglob("*.png")))
 
 
 def telecharger_championnats(session):
@@ -185,7 +218,8 @@ def telecharger():
 
 def main():
     manquants = telecharger()
-    print(f"Écussons enregistrés dans {DOSSIER}")
+    recadres = recadrer_tous()
+    print(f"Écussons enregistrés dans {DOSSIER} ({recadres} recadrés)")
     if manquants:
         print(f"{len(manquants)} introuvables (ajoutez un alias dans ALIAS) : {', '.join(manquants)}")
 
