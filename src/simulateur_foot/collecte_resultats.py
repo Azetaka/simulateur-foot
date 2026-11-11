@@ -1,7 +1,8 @@
 """Télécharge les résultats des championnats suivis et les enregistre dans data/.
 
 Source : football-data.co.uk, mis à jour en général le lundi, après les
-matchs du week-end.
+matchs du week-end. La même source publie en milieu de semaine les matchs
+de la prochaine journée, avec les cotes des bookmakers (data/prochains_matchs.csv).
 """
 
 import time
@@ -16,6 +17,10 @@ URL = "https://football-data.co.uk/mmz4281/{saison}/{championnat}.csv"
 COLONNES = ["Championnat", "Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "FTR", "HS", "AS", "HST", "AST"]
 DOSSIER_DATA = Path(__file__).resolve().parents[2] / "data"
 FICHIER = DOSSIER_DATA / "resultats.csv"
+URL_PROCHAINS = "https://www.football-data.co.uk/fixtures.csv"
+FICHIER_PROCHAINS = DOSSIER_DATA / "prochains_matchs.csv"
+# Cotes moyennes du marché (Avg…), à défaut celles de Bet365 (B365…)
+SOURCES_COTES = ["Avg", "B365"]
 
 
 def telecharger_saison(saison, championnat="F1"):
@@ -66,7 +71,44 @@ def mettre_a_jour():
     gardes = anciens[anciens["Saison"] != saison]
     nouveaux = len(frais) - (anciens["Saison"] == saison).sum()
     enregistrer(pd.concat([gardes, frais], ignore_index=True))
+    try:
+        telecharger_prochains_matchs()
+    except Exception as erreur:  # les résultats comptent plus que le calendrier : on continue
+        print(f"Prochains matchs indisponibles ({erreur.__class__.__name__}).")
     return int(nouveaux)
+
+
+def telecharger_prochains_matchs():
+    """Enregistre les matchs annoncés de la prochaine journée, avec leurs cotes ; renvoie leur nombre."""
+    df = pd.read_csv(URL_PROCHAINS, encoding="utf-8-sig")
+    df = df[df["Div"].isin(list(CHAMPIONNATS))].dropna(subset=["HomeTeam", "AwayTeam"])
+    prochains = pd.DataFrame({
+        "Championnat": df["Div"],
+        "Date": pd.to_datetime(df["Date"], dayfirst=True),
+        "Heure": df["Time"],
+        "HomeTeam": df["HomeTeam"],
+        "AwayTeam": df["AwayTeam"],
+    })
+    for issue in "HDA":
+        cotes = [df[f"{source}{issue}"] for source in SOURCES_COTES if f"{source}{issue}" in df]
+        prochains[f"Cote{issue}"] = pd.concat(cotes, axis=1).bfill(axis=1).iloc[:, 0] if cotes else float("nan")
+    DOSSIER_DATA.mkdir(exist_ok=True)
+    prochains.sort_values(["Championnat", "Date", "Heure"], kind="stable").to_csv(
+        FICHIER_PROCHAINS, index=False, date_format="%Y-%m-%d")
+    return len(prochains)
+
+
+def charger_prochains_matchs(championnat, matchs_saison):
+    """Prochains matchs d'un championnat qui n'ont pas encore été joués (vide si rien n'est annoncé)."""
+    if not FICHIER_PROCHAINS.exists():
+        return pd.DataFrame(columns=["Championnat", "Date", "Heure", "HomeTeam", "AwayTeam",
+                                     "CoteH", "CoteD", "CoteA"])
+    prochains = pd.read_csv(FICHIER_PROCHAINS, parse_dates=["Date"])
+    prochains = prochains[prochains["Championnat"] == championnat]
+    # Le fichier de la source peut encore lister des matchs du week-end passé
+    jouees = set(zip(matchs_saison["HomeTeam"], matchs_saison["AwayTeam"]))
+    a_venir = [(d, e) not in jouees for d, e in zip(prochains["HomeTeam"], prochains["AwayTeam"])]
+    return prochains[a_venir].reset_index(drop=True)
 
 
 def heures_depuis_mise_a_jour():

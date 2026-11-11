@@ -45,3 +45,15 @@ def probabilites_tableau(modele, notes_dom, notes_ext):
     proba = np.exp(logits)
     proba /= proba.sum(axis=-1, keepdims=True)
     return proba[..., [list(regression.classes_).index(r) for r in RESULTATS]]
+
+
+def chances_bookmakers(cotes_h, cotes_d, cotes_a):
+    """Chances implicites des cotes, colonnes A, D, H.
+
+    1 / cote donne une chance, mais leur somme dépasse 100 % : c'est la marge
+    du bookmaker. On la retire en ramenant la somme à 100 % (normalisation).
+    """
+    inverses = pd.DataFrame({"A": 1 / pd.Series(cotes_a, dtype=float).to_numpy(),
+                             "D": 1 / pd.Series(cotes_d, dtype=float).to_numpy(),
+                             "H": 1 / pd.Series(cotes_h, dtype=float).to_numpy()})
+    return inverses.div(inverses.sum(axis=1), axis=0)[RESULTATS]
