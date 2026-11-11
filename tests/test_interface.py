@@ -15,7 +15,7 @@ def test_interface_sans_erreur(code):
     assert not app.exception
     # Trois tableaux, plus celui de la prochaine journée quand des matchs sont annoncés
     assert len(app.dataframe) in (3, 4)
-    assert len(app.tabs) == 4
+    assert len(app.tabs) == 5
 
 
 def test_prochaine_journee_avec_des_matchs_annonces(tmp_path, monkeypatch):

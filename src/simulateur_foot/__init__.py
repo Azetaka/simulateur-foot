@@ -14,6 +14,8 @@ ETAPES = {
     "reglage": ("reglage_force", "Cherche les meilleurs paramètres Elo"),
     "modele": ("modele", "Compare les modèles de prédiction (≈ 2 min)"),
     "simulation": ("simulation", "Simule la fin de la saison en cours"),
+    "joueurs": ("joueurs", "Télécharge les meilleurs buteurs et passeurs (ESPN)"),
+    "logos": ("logos", "Télécharge les écussons des championnats et des clubs"),
 }
 FONCTIONS = {"maj": "main_mise_a_jour"}
 
