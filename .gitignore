@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+data/*.duckdb
+# Données dérivées : recalculées par `simulateur-foot forces` / `variables`
+data/matchs_*.csv
+
+# Réglages locaux de Claude Code
+.claude/settings.local.json
+.DS_Store
+.agents/
+.claude/
