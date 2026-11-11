@@ -164,7 +164,7 @@ with onglet_affiche:
                  "adversaire:N", alt.Tooltip("score:N", title="Score (dom–ext)")],
     ).add_params(survol)
     st.subheader("Évolution des notes Elo")
-    st.altair_chart((lignes + points).properties(height=320), use_container_width=True)
+    st.altair_chart((lignes + points).properties(height=320), width="stretch")
 
     face_a_face = matchs[matchs["HomeTeam"].isin([dom, ext]) & matchs["AwayTeam"].isin([dom, ext])]
     if len(face_a_face):
@@ -175,7 +175,7 @@ with onglet_affiche:
                     Score=face_a_face["FTHG"].astype(int).astype(str) + " – " + face_a_face["FTAG"].astype(int).astype(str))
             [["Date", "Saison", "HomeTeam", "Score", "AwayTeam"]]
             .rename(columns={"HomeTeam": "Domicile", "AwayTeam": "Extérieur"}),
-            hide_index=True, use_container_width=True,
+            hide_index=True, width="stretch",
             column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY")})
 
 # ---------- Fin de saison ----------
@@ -205,7 +205,7 @@ with onglet_saison:
     st.dataframe(
         tableau[["club", "Rang actuel", "joues", "points", "diff_buts", "points_finaux",
                  "titre", "ligue_champions", "barrage", "relegation"]],
-        hide_index=True, use_container_width=True, height=36 * (len(tableau) + 1) + 3,
+        hide_index=True, width="stretch", height=36 * (len(tableau) + 1) + 3,
         column_config={
             "club": st.column_config.TextColumn("Club", pinned=True),
             "joues": "J", "points": "Pts", "diff_buts": st.column_config.NumberColumn("Diff.", format="%+d"),
@@ -236,7 +236,7 @@ with onglet_saison:
                  alt.Tooltip("probabilite:Q", format=".1%", title="Probabilité")],
     )
     st.subheader("Où chaque club peut finir")
-    st.altair_chart(carte.properties(height=30 * len(ordre)), use_container_width=True)
+    st.altair_chart(carte.properties(height=30 * len(ordre)), width="stretch")
 
 # ---------- Fiabilité ----------
 
@@ -281,7 +281,7 @@ with onglet_fiabilite:
     )
     st.subheader("Calibration sur la saison test")
     st.altair_chart((diagonale + courbes.mark_line(strokeWidth=2) + courbes.mark_circle(size=90))
-                    .properties(height=360), use_container_width=True)
+                    .properties(height=360), width="stretch")
     st.caption("Chaque point regroupe un cinquième des matchs test. Plus les points suivent la "
                "diagonale, plus les probabilités sont fiables. La comparaison complète avec le "
                "modèle à 16 variables se relance avec `uv run simulateur-foot modele` (≈ 2 min).")

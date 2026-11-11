@@ -25,4 +25,5 @@ dev = [
     "duckdb>=2.0.0",
     "ipykernel>=7.4.0",
     "pytest>=9.2.0",
+    "watchdog>=7.1.0",
 ]
