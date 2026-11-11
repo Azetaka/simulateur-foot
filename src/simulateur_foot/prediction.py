@@ -1,5 +1,6 @@
 """Probabilités d'un match à partir des notes Elo : le modèle retenu dans RAPPORT.md."""
 
+import numpy as np
 import pandas as pd
 
 from .collecte_resultats import SAISONS
@@ -27,3 +28,20 @@ def probabilites(modele, notes_dom, notes_ext):
     entree = pd.DataFrame({"force_dom": notes_dom, "force_ext": notes_ext})
     proba = pd.DataFrame(modele.predict_proba(entree), columns=modele.classes_)
     return proba[RESULTATS]
+
+
+def probabilites_tableau(modele, notes_dom, notes_ext):
+    """Comme probabilites, mais pour des tableaux de notes de n'importe quelle forme.
+
+    Calcul direct (standardisation, puis softmax de la régression) : bien plus
+    rapide que predict_proba quand on l'appelle des millions de fois pendant la
+    simulation. Renvoie un tableau (..., 3) dans l'ordre A, D, H.
+    """
+    echelle = modele.named_steps["standardscaler"]
+    regression = modele.named_steps["logisticregression"]
+    entree = (np.stack([notes_dom, notes_ext], axis=-1) - echelle.mean_) / echelle.scale_
+    logits = entree @ regression.coef_.T + regression.intercept_
+    logits -= logits.max(axis=-1, keepdims=True)
+    proba = np.exp(logits)
+    proba /= proba.sum(axis=-1, keepdims=True)
+    return proba[..., [list(regression.classes_).index(r) for r in RESULTATS]]

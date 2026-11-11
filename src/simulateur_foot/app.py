@@ -15,7 +15,8 @@ from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT
                                     proba_frequences, proba_logistique_forces, selection)
 from simulateur_foot.prediction import (SAISON_EN_COURS, SAISONS_APPRENTISSAGE, charger_forces,
                                         entrainer, probabilites)
-from simulateur_foot.simulation import classement, matchs_restants, points_attendus, resume, simuler
+from simulateur_foot.simulation import (classement, matchs_restants, points_attendus, resume, simuler,
+                                        simuler_notes_evolutives)
 
 # Jetons de couleur. Données : palette validée pour les daltoniens (domicile, nul, extérieur).
 THEMES = {
@@ -192,14 +193,18 @@ def forme_recente(code, version, club, nb=5):
 
 
 @st.cache_data
-def fin_de_saison(code, version, nb, graine):
+def fin_de_saison(code, version, nb, graine, evolutives=True):
     matchs, notes = donnees(code, version)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
     table = classement(saison)
     restants = matchs_restants(saison)
-    proba = probabilites(modele_retenu(code, version), restants["HomeTeam"].map(notes).to_numpy(),
-                         restants["AwayTeam"].map(notes).to_numpy())
-    points, rangs = simuler(table, restants, proba, nb, graine)
+    if evolutives:
+        points, rangs = simuler_notes_evolutives(table, restants, notes, modele_retenu(code, version),
+                                                 nb, graine)
+    else:
+        proba = probabilites(modele_retenu(code, version), restants["HomeTeam"].map(notes).to_numpy(),
+                             restants["AwayTeam"].map(notes).to_numpy())
+        points, rangs = simuler(table, restants, proba, nb, graine)
     synthese = resume(table, points, rangs, CHAMPIONNATS[code])
     bas, haut = np.percentile(points, [10, 90], axis=0)
     fourchette = pd.DataFrame({"bas": bas, "haut_points": haut}, index=table.index)
@@ -422,15 +427,20 @@ with onglet_saison:
     explication("Le simulateur part du classement actuel et joue au hasard tous les matchs qui restent, "
                 "selon les chances de chaque affiche. Il recommence des milliers de fois. Si un club "
                 "finit champion dans 6 500 saisons simulées sur 10 000, ses chances de titre sont "
-                "de 65 %. Plus on simule de saisons, plus les pourcentages sont stables ; la graine "
-                "permet de rejouer exactement les mêmes tirages.")
+                "de 65 %. Après chaque journée tirée au sort, les notes des clubs sont mises à "
+                "jour comme après un vrai match : un club qui enchaîne les victoires devient favori "
+                "des journées suivantes, comme dans la réalité.")
 
     r1, r2, k1, k2, k3 = st.columns([1.5, .8, 1, 1, 1], vertical_alignment="bottom")
     nb = r1.select_slider("Nombre de saisons simulées", [1_000, 5_000, 10_000, 50_000], value=10_000,
                           format_func=lambda n: f"{n:,}".replace(",", " "))
     graine = r2.number_input("Graine du hasard", min_value=0, value=0, step=1,
                              help="Même graine = mêmes tirages : pratique pour comparer deux réglages.")
-    synthese, rangs, ordre_clubs, nb_restants = fin_de_saison(code, version, nb, graine)
+    evolutives = r1.toggle(
+        "Les notes évoluent pendant la saison simulée", value=True,
+        help="Désactivé, chaque club garde sa note du jour jusqu'à la fin : les séries ne se "
+             "prolongent pas et la simulation est trop sûre d'elle. Pratique pour comparer.")
+    synthese, rangs, ordre_clubs, nb_restants = fin_de_saison(code, version, nb, graine, evolutives)
     nb_clubs = len(ordre_clubs)
 
     favori = synthese["titre"].idxmax()
@@ -541,9 +551,10 @@ with onglet_saison:
 
     with st.expander("Hypothèses et limites de la simulation"):
         st.markdown(
-            "- Les notes des clubs restent **figées à leur valeur du jour** : la simulation ne fait pas "
-            "monter un club qui enchaîne les victoires simulées. Elle est donc un peu trop sûre d'elle "
-            "en début de saison.\n"
+            "- Les notes **évoluent** dans chaque saison simulée, avec la même règle Elo que pour les "
+            "vrais matchs. Le calendrier des matchs restants n'est pas connu : l'ordre des affiches "
+            "est tiré au hasard, en journées où chaque club joue au plus une fois. Avec les notes "
+            "figées (interrupteur en haut), la simulation est plus sûre d'elle.\n"
             "- Le simulateur tire l'**issue** de chaque match (victoire, nul, défaite), pas le score. "
             "À égalité de points, les clubs sont départagés par leur différence de buts actuelle, "
             f"puis au hasard. En {regles.nom}, le vrai règlement départage d'abord par "
