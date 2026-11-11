@@ -1,4 +1,4 @@
-# Identité de l'interface : vermillon « carton rouge », titres condensés façon tableau d'affichage
+# Identité de l'interface : vert pelouse, titres condensés façon tableau d'affichage
 [theme]
 font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
 headingFont = "Barlow Condensed:https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap"
@@ -7,16 +7,19 @@ baseRadius = "small"
 showWidgetBorder = true
 
 [theme.light]
-primaryColor = "#D7361E"
-backgroundColor = "#F6F4EF"
-secondaryBackgroundColor = "#ECE8DF"
-textColor = "#16150F"
+primaryColor = "#1B7A3A"
+backgroundColor = "#EAF2E6"
+secondaryBackgroundColor = "#D8E7D1"
+textColor = "#0F1F14"
 
 [theme.dark]
-primaryColor = "#F0573C"
-backgroundColor = "#11130F"
-secondaryBackgroundColor = "#1C1F1A"
-textColor = "#EEECE5"
+primaryColor = "#3FBF63"
+backgroundColor = "#0C1710"
+secondaryBackgroundColor = "#15271B"
+textColor = "#E8F1EA"
+
+[server]
+enableStaticServing = true
 
 [client]
 toolbarMode = "minimal"

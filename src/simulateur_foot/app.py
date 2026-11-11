@@ -3,6 +3,8 @@
 Lancement : uv run simulateur-foot interface
 """
 
+import html
+
 import altair as alt
 import numpy as np
 import pandas as pd
@@ -10,6 +12,8 @@ import streamlit as st
 
 from simulateur_foot.championnats import CHAMPIONNATS, PAR_DEFAUT
 from simulateur_foot.collecte_resultats import FICHIER, heures_depuis_mise_a_jour, mettre_a_jour
+from simulateur_foot import joueurs as stats_joueurs
+from simulateur_foot.logos import chemin_championnat, chemin_club, url as logos_url
 from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE, NOTE_PROMU
 from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT, evaluer,
                                     proba_frequences, proba_logistique_forces, selection)
@@ -20,16 +24,16 @@ from simulateur_foot.simulation import classement, matchs_restants, resume, simu
 # Jetons de couleur. Données : palette validée pour les daltoniens (domicile, nul, extérieur).
 THEMES = {
     "light": {
-        "H": "#2a78d6", "D": "#8b8a85", "A": "#1baf7a",
-        "seq": ["#ece8df", "#9ec5f4", "#2a78d6", "#104281"],
-        "fond": "#F6F4EF", "carte": "#FFFDF8", "bord": "#E2DDD1",
-        "encre": "#16150F", "encre2": "#5B594F", "accent": "#D7361E", "accent_doux": "#FBE3DD",
+        "H": "#2a78d6", "D": "#8b8f88", "A": "#e08a1e",
+        "seq": ["#e3eede", "#9ec5f4", "#2a78d6", "#104281"],
+        "fond": "#EAF2E6", "carte": "#F8FBF5", "bord": "#CBDDC3",
+        "encre": "#0F1F14", "encre2": "#4A5D4F", "accent": "#1B7A3A", "accent_doux": "#D8EBD3",
     },
     "dark": {
-        "H": "#3987e5", "D": "#8f8e88", "A": "#199e70",
-        "seq": ["#1c1f1a", "#184f95", "#3987e5", "#9ec5f4"],
-        "fond": "#11130F", "carte": "#1A1D18", "bord": "#2E322B",
-        "encre": "#EEECE5", "encre2": "#A9A69B", "accent": "#F0573C", "accent_doux": "#3A1E17",
+        "H": "#3987e5", "D": "#8f948d", "A": "#f0a23a",
+        "seq": ["#15271b", "#184f95", "#3987e5", "#9ec5f4"],
+        "fond": "#0C1710", "carte": "#13231A", "bord": "#24392B",
+        "encre": "#E8F1EA", "encre2": "#9DB2A3", "accent": "#3FBF63", "accent_doux": "#16301F",
     },
 }
 NOMS_ISSUES = {"H": "Victoire à domicile", "D": "Match nul", "A": "Victoire à l'extérieur"}
@@ -38,12 +42,16 @@ FORME = {"V": "Victoire", "N": "Nul", "D": "Défaite"}
 CSS = """
 <style>
   [data-testid="stMainBlockContainer"] { max-width: 1120px; }
-  .bandeau { border-bottom: 3px solid __accent__; padding-bottom: .7rem; margin-bottom: .2rem; }
-  .bandeau .sur-titre { color: __accent__; font-weight: 600; font-size: .8rem;
+  .bandeau { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+             border-radius: 10px; padding: 1.4rem 1.6rem 1.3rem; margin-bottom: .2rem; color: #fff;
+             background: repeating-linear-gradient(90deg, #14602d 0 64px, #17702f 64px 128px);
+             box-shadow: inset 0 0 0 2px rgba(255,255,255,.55); }
+  .bandeau .texte { min-width: 0; }
+  .bandeau .sur-titre { color: #BDE8C7; font-weight: 600; font-size: .8rem;
                         letter-spacing: .12em; text-transform: uppercase; }
   .bandeau h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 3rem; line-height: 1;
-                margin: .15rem 0 .4rem; padding: 0; text-transform: uppercase; color: __encre__; }
-  .bandeau p { margin: 0; color: __encre2__; font-size: 1rem; max-width: 46rem; }
+                margin: .15rem 0 .4rem; padding: 0; text-transform: uppercase; color: #fff; }
+  .bandeau p { margin: 0; color: #E3F3E6; font-size: 1rem; max-width: 46rem; }
   .etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1rem 0 .4rem; }
   .etape { background: __carte__; border: 1px solid __bord__; border-radius: 6px; padding: .8rem .9rem; }
   .etape b { display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 1.25rem;
@@ -61,6 +69,10 @@ CSS = """
   .club { display: flex; flex-direction: column; gap: .25rem; }
   .club.droite { align-items: flex-end; text-align: right; }
   .club .lieu { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: __encre2__; }
+  .ecusson { width: 1.9rem; height: 1.9rem; object-fit: contain; flex: none; }
+  .club .ecusson { width: 3.4rem; height: 3.4rem; }
+  .bandeau .ecusson-ligue { flex: none; width: 5.5rem; height: 5.5rem; object-fit: contain; padding: .6rem;
+                            background: rgba(255,255,255,.95); border-radius: 50%; }
   .club .nom { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 2.3rem;
                line-height: 1; color: __encre__; display: flex; align-items: center; gap: .5rem; }
   .club .infos { color: __encre2__; font-size: .9rem; font-variant-numeric: tabular-nums; }
@@ -93,8 +105,53 @@ CSS = """
   .chiffre-cle .libelle { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase;
                           color: __encre2__; }
   .chiffre-cle .detail { font-size: .88rem; color: __encre2__; margin-top: .2rem; }
+  .classement { margin: .6rem 0 1.2rem; }
+  .jr { position: relative; display: grid; grid-template-columns: 1.6rem 2.2rem minmax(7rem, 13rem) 1fr;
+        align-items: center; gap: .7rem; padding: .35rem .5rem; border-radius: 8px; }
+  .jr:hover { background: __accent_doux__; z-index: 5; }
+  .jr .rang { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.3rem;
+              color: __encre2__; text-align: center; }
+  .jr:nth-child(-n+3) .rang { color: __accent__; }
+  .jr .ecusson { width: 2.2rem; height: 2.2rem; }
+  .jr .ident { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+  .jr .ident b { color: __encre__; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .jr .ident span { color: __encre2__; font-size: .8rem; }
+  .piste { position: relative; height: 1.6rem; }
+  .piste .prevu, .piste .actuel { position: absolute; left: 0; top: .15rem; height: 1.3rem; border-radius: 0 6px 6px 0; }
+  .piste .prevu { background: __accent__; opacity: .25; }
+  .piste .actuel { background: __accent__; }
+  .piste .fourch { position: absolute; top: calc(.8rem - 1px); height: 2px; background: __encre__; opacity: .8; }
+  .piste .fourch::before, .piste .fourch::after { content: ""; position: absolute; top: -4px; width: 2px;
+                                                   height: 10px; background: __encre__; }
+  .piste .fourch::before { left: 0; } .piste .fourch::after { right: 0; }
+  .piste .val { position: absolute; top: 50%; transform: translateY(-50%); margin-left: .6rem;
+                font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.3rem; color: __encre__; }
+  .jr .bulle { display: none; position: absolute; left: 4rem; top: calc(100% - .2rem); z-index: 20; width: 17rem;
+               background: __carte__; border: 1px solid __bord__; border-radius: 10px; padding: .8rem .95rem;
+               box-shadow: 0 10px 28px rgba(0,0,0,.25); pointer-events: none; }
+  .jr:hover .bulle { display: block; }
+  .bulle .tete { display: flex; align-items: center; gap: .6rem; padding-bottom: .55rem; margin-bottom: .5rem;
+                 border-bottom: 1px solid __bord__; }
+  .bulle .tete .ecusson { width: 2.4rem; height: 2.4rem; }
+  .bulle .tete b { display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 1.35rem;
+                   line-height: 1; color: __encre__; }
+  .bulle .tete span { color: __encre2__; font-size: .82rem; }
+  .bulle dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .9rem; margin: 0; font-size: .88rem; }
+  .bulle dt { color: __encre2__; }
+  .bulle dd { margin: 0; text-align: right; font-weight: 600; color: __encre__; font-variant-numeric: tabular-nums; }
+  .bulle dd.fort { color: __accent__; font-size: 1rem; }
+  .legende-classement { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; font-size: .85rem; color: __encre2__;
+                        margin: .2rem 0 .4rem; }
+  .legende-classement i { display: inline-block; width: 1.6rem; height: .7rem; border-radius: 3px;
+                          margin-right: .4rem; background: __accent__; vertical-align: middle; }
+  .legende-classement i.clair { opacity: .25; }
+  .legende-classement i.trait { height: 2px; background: __encre__; }
   @media (max-width: 640px) {
+    .jr { grid-template-columns: 1.4rem 1.8rem 1fr; }
+    .jr .piste { grid-column: 1 / -1; }
+    .jr .bulle { left: .5rem; width: calc(100% - 1rem); }
     .bandeau h1 { font-size: 2.3rem; }
+    .bandeau .ecusson-ligue { display: none; }
     .etapes { grid-template-columns: 1fr; }
     .affiche { grid-template-columns: 1fr; gap: .7rem; }
     .club.droite { align-items: flex-start; text-align: left; }
@@ -131,6 +188,18 @@ def rang(n):
 
 def explication(texte, titre="Comment lire cette page"):
     st.html(f'<div class="explication"><b class="titre">{titre}</b>{texte}</div>')
+
+
+PIXEL = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"  # image vide
+
+
+def image(chemin):
+    """L'adresse de l'écusson sur le serveur de fichiers statiques (image vide s'il est absent)."""
+    return logos_url(chemin) if chemin.exists() else PIXEL
+
+
+def ecusson(chemin, classe="ecusson", alt=""):
+    return f'<img class="{classe}" src="{logos_url(chemin)}" alt="{alt}">' if chemin.exists() else ""
 
 
 def chiffre_cle(colonne, libelle, valeur, detail=""):
@@ -193,6 +262,24 @@ def fin_de_saison(code, version, nb, graine):
 
 
 @st.cache_data
+def joueurs_projetes(code, version, version_joueurs):
+    """Meilleurs buteurs et passeurs du championnat, avec leur projection de fin de saison."""
+    matchs, _ = donnees(code, version)
+    saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
+    return stats_joueurs.projeter(stats_joueurs.charger(), saison, code)
+
+
+def donnees_joueurs():
+    """Date du fichier des joueurs, après l'avoir mis à jour s'il a plus de 12 h (None si absent)."""
+    if stats_joueurs.heures_depuis_telechargement() > SEUIL_HEURES:
+        try:
+            stats_joueurs.telecharger()
+        except Exception:  # pas de réseau, ESPN indisponible : on garde le fichier local s'il existe
+            pass
+    return stats_joueurs.FICHIER_JOUEURS.stat().st_mtime if stats_joueurs.FICHIER_JOUEURS.exists() else None
+
+
+@st.cache_data
 def fiabilite(code, version):
     matchs, _ = donnees(code, version)
     scores = {}
@@ -248,13 +335,13 @@ table_actuelle = classement(saison)
 rangs_actuels = {club: i + 1 for i, club in enumerate(table_actuelle.index)}
 
 st.html(f"""
-<div class="bandeau">
+<div class="bandeau"><div class="texte">
   <div class="sur-titre">Simulateur foot · {regles.pays} · saison {nom_saison(SAISON_EN_COURS)} ·
   résultats au {saison["Date"].max():%d/%m/%Y}</div>
   <h1>{regles.nom}</h1>
   <p>Cet outil estime les chances de chaque club, match par match puis sur toute la saison,
   à partir des résultats du championnat depuis 2021.</p>
-</div>
+</div>{ecusson(chemin_championnat(code), "ecusson-ligue", regles.nom)}</div>
 <div class="etapes">
   <div class="etape"><b><span class="num">1</span>Une note par club</b>
     <span>Chaque club a une note Elo : il gagne des points quand il bat un adversaire, il en perd
@@ -284,8 +371,8 @@ if st.session_state.verification:
     (st.success if etat == "ok" else st.warning)(message)
     st.session_state.verification = None
 
-onglet_match, onglet_saison, onglet_fiabilite = st.tabs(
-    ["Un match", "La fin de saison", "Le modèle est-il fiable ?"])
+onglet_match, onglet_saison, onglet_joueurs, onglet_fiabilite = st.tabs(
+    ["Un match", "La fin de saison", "Les meilleurs joueurs", "Le modèle est-il fiable ?"])
 
 # ---------- Un match ----------
 
@@ -304,7 +391,8 @@ with onglet_match:
     def fiche(club, lieu, cote, droite=False):
         forme = "".join(f'<i class="{r}" title="{FORME[r]}">{r}</i>' for r in forme_recente(code, version, club))
         return (f'<div class="club{" droite" if droite else ""}"><span class="lieu">{lieu}</span>'
-                f'<span class="nom"><span class="pastille" style="background:{c[cote]}"></span>{club}</span>'
+                f'<span class="nom">{ecusson(chemin_club(code, club), alt=club)}'
+                f'<span class="pastille" style="background:{c[cote]}"></span>{club}</span>'
                 f'<span class="infos">Note <b>{notes[club]:.0f}</b> · {rang(rangs_actuels[club])} du classement</span>'
                 f'<div class="forme" title="5 derniers matchs, du plus ancien au plus récent">{forme}</div></div>')
 
@@ -441,14 +529,16 @@ with onglet_saison:
     tableau = projection.copy()
     probas = ["titre", "haut"] + (["barrage"] if regles.barrage else []) + ["relegation"]
     tableau[probas] = tableau[probas] * 100
-    tableau.insert(1, "rang", tableau["club"].map(rangs_actuels))
+    tableau.insert(0, "logo", tableau["club"].map(lambda club: image(chemin_club(code, club))))
+    tableau.insert(2, "rang", tableau["club"].map(rangs_actuels))
     progression = lambda titre, aide: st.column_config.ProgressColumn(
         titre, help=aide, format="%.0f\u00a0%%", min_value=0, max_value=100)
     place_barrage = nb_clubs - regles.relegues
     st.dataframe(
-        tableau[["club", "rang", "joues", "points", "diff_buts", "points_finaux"] + probas],
+        tableau[["logo", "club", "rang", "joues", "points", "diff_buts", "points_finaux"] + probas],
         hide_index=True, width="stretch", height=36 * (len(tableau) + 1) + 3,
         column_config={
+            "logo": st.column_config.ImageColumn("Logo", width="small", pinned=True),
             "club": st.column_config.TextColumn("Club", pinned=True),
             "rang": st.column_config.NumberColumn("Rang", help="Place au classement actuel"),
             "joues": st.column_config.NumberColumn("J", help="Matchs joués"),
@@ -502,6 +592,68 @@ with onglet_saison:
             "- Blessures, transferts et changements d'entraîneur ne sont pas pris en compte.")
 
 # ---------- Le modèle est-il fiable ? ----------
+
+with onglet_joueurs:
+    explication("Les 50 meilleurs buteurs et les 50 meilleurs passeurs du championnat, avec leur total "
+                "prévu à la fin de saison. Le calcul suppose que chaque joueur garde son rythme : la même "
+                "part des matchs de son club, et les mêmes buts (ou passes) par match joué. On tire "
+                "ensuite des milliers de fins de saison au hasard. Le trait couvre 8 saisons simulées "
+                "sur 10 : très large tant que le joueur a peu joué, car un bon début de saison "
+                "n'annonce pas toujours la suite.", titre="Comment lire la prévision")
+    version_joueurs = donnees_joueurs()
+    if version_joueurs is None:
+        st.warning("Les statistiques des joueurs n'ont pas pu être téléchargées (pas de réseau ?). "
+                   "Réessayez avec `uv run simulateur-foot joueurs`.")
+    else:
+        tous = joueurs_projetes(code, version, version_joueurs)
+        j1, j2 = st.columns([2, 1], vertical_alignment="bottom")
+        choix = j1.segmented_control("Classement", ["Buteurs", "Passeurs"], default="Buteurs",
+                                     label_visibility="collapsed") or "Buteurs"
+        nb_joueurs = j2.select_slider("Joueurs affichés", [10, 15, 25, 50], value=15)
+        stat, unite = ("buts", "buts") if choix == "Buteurs" else ("passes", "passes décisives")
+        top = tous.sort_values([stat, f"{stat}_prevus"], ascending=False).head(nb_joueurs)
+        top = top[top[stat] > 0].copy()
+        st.caption(f"Saison {nom_saison(SAISON_EN_COURS)}, résultats au {saison['Date'].max():%d/%m/%Y}. "
+                   f"Données : ESPN. La barre pleine montre le total actuel, la barre claire le total prévu en fin "
+                   f"de saison, le trait noir la fourchette. Passez la souris sur un joueur pour le détail.")
+
+        singulier = "but" if stat == "buts" else "passe décisive"
+        maxi = float(top[f"{stat}_haut"].max()) * 1.12
+        pct = lambda valeur: f"{max(valeur, 0) / maxi * 100:.2f}"
+        lignes = []
+        for i, j in enumerate(top.itertuples(index=False), start=1):
+            actuel, prevu = int(getattr(j, stat)), round(getattr(j, f"{stat}_prevus"))
+            bas, haut = round(getattr(j, f"{stat}_bas")), round(getattr(j, f"{stat}_haut"))
+            rythme = f"{actuel / j.matchs:.2f}".replace(".", ",")
+            largeur = f"{(getattr(j, f'{stat}_haut') - getattr(j, f'{stat}_bas')) / maxi * 100:.2f}"
+            logo = ecusson(chemin_club(code, j.club), alt=j.club)
+            nom, club = html.escape(j.joueur), html.escape(j.club)
+            lignes.append(f"""
+<div class="jr">
+  <div class="rang">{i}</div>{logo}
+  <div class="ident"><b>{nom}</b><span>{club}</span></div>
+  <div class="piste">
+    <div class="prevu" style="width:{pct(getattr(j, f"{stat}_prevus"))}%"></div>
+    <div class="actuel" style="width:{pct(getattr(j, stat))}%"></div>
+    <div class="fourch" style="left:{pct(getattr(j, f"{stat}_bas"))}%;width:{largeur}%"></div>
+    <span class="val" style="left:{pct(getattr(j, f"{stat}_haut"))}%">{prevu}</span>
+  </div>
+  <div class="bulle">
+    <div class="tete">{logo}<div><b>{nom}</b><span>{club}</span></div></div>
+    <dl>
+      <dt>Aujourd'hui</dt><dd>{actuel} {unite}</dd>
+      <dt>Matchs joués</dt><dd>{int(j.matchs)}</dd>
+      <dt>Rythme</dt><dd>{rythme} {singulier} / match</dd>
+      <dt>Fin de saison</dt><dd class="fort">≈ {prevu} {unite}</dd>
+      <dt>Fourchette</dt><dd>{bas} à {haut}</dd>
+    </dl>
+  </div>
+</div>""")
+        st.html('<div class="legende-classement"><span><i></i>Total actuel</span>'
+                '<span><i class="clair"></i>Prévu en fin de saison</span>'
+                '<span><i class="trait"></i>Fourchette probable (8 saisons sur 10)</span></div>'
+                f'<div class="classement">{"".join(lignes)}</div>')
+
 
 with onglet_fiabilite:
     scores, proba_test, test = fiabilite(code, version)
