@@ -69,16 +69,18 @@ CSS = """
                  line-height: 1.5; }
   .explication b.titre { display: block; font-size: .75rem; letter-spacing: .1em;
                          text-transform: uppercase; color: __accent__; margin-bottom: .2rem; }
-  .affiche { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem;
+  .affiche { container-type: inline-size; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem;
              background: __carte__; border: 1px solid __bord__; border-radius: 8px; padding: 1.1rem 1.3rem; }
   .club { display: flex; flex-direction: column; gap: .25rem; }
   .club.droite { align-items: flex-end; text-align: right; }
   .club .lieu { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: __encre2__; }
   .ecusson { width: 1.9rem; height: 1.9rem; object-fit: contain; flex: none; }
-  .club .ecusson { width: 3.4rem; height: 3.4rem; }
+  /* Hauteur calée sur le nom ; largeur libre (bornée) pour les écussons larges ou étroits */
+  .club .ecusson { height: clamp(2.2rem, 8cqi, 3.1rem); width: auto; max-width: 4.4rem; }
   .bandeau .ecusson-ligue { flex: none; width: 5.5rem; height: 5.5rem; object-fit: contain; padding: .6rem;
                             background: rgba(255,255,255,.95); border-radius: 50%; }
-  .club .nom { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 2.3rem;
+  .club .nom { font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+               font-size: clamp(1.3rem, 5cqi, 2.3rem); white-space: nowrap;
                line-height: 1; color: __encre__; display: flex; align-items: center; gap: .5rem; }
   .club .infos { color: __encre2__; font-size: .9rem; font-variant-numeric: tabular-nums; }
   .club .infos b { color: __encre__; }
@@ -133,6 +135,8 @@ CSS = """
   .duel-pied .fort { color: __accent__; font-weight: 600; }
   .chiffre-cle { background: __carte__; border: 1px solid __bord__; border-radius: 6px;
                  padding: .8rem 1rem; height: 100%; }
+  .chiffre-cle .valeur .ecusson { height: 2rem; width: auto; max-width: 2.8rem; margin-right: .5rem;
+                                  vertical-align: -.3rem; }
   .chiffre-cle .valeur { font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
                          font-size: 2.2rem; line-height: 1.05; color: __encre__; }
   .chiffre-cle .libelle { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase;
@@ -195,6 +199,7 @@ CSS = """
     .club.droite { align-items: flex-start; text-align: left; }
     .contre { display: none; }
     .club .nom { font-size: 1.9rem; }
+    .club .ecusson { height: 2.6rem; max-width: 3.6rem; }
   }
 </style>
 """
@@ -385,12 +390,18 @@ if "verification" not in st.session_state:
             st.session_state.verification = actualiser()
 
 codes = list(CHAMPIONNATS)
-code_url = st.query_params.get("championnat", PAR_DEFAUT)
+# L'adresse n'est lue qu'au premier passage. Ensuite, le choix vit dans st.session_state.
+# Un `default` relu à chaque passage changerait l'identité du widget et ferait perdre un clic sur deux.
+if "championnat" not in st.session_state:
+    code_url = st.query_params.get("championnat", PAR_DEFAUT)
+    st.session_state.championnat = code_url if code_url in codes else PAR_DEFAUT
+elif st.session_state.championnat is None:  # un clic sur le championnat déjà choisi le désélectionne
+    st.session_state.championnat = st.session_state.get("dernier_championnat", PAR_DEFAUT)
 barre_championnat, barre_donnees, barre_bouton = st.columns([5, 4, 1.1], vertical_alignment="center")
 code = barre_championnat.segmented_control(
-    "Championnat", codes, default=code_url if code_url in codes else PAR_DEFAUT,
+    "Championnat", codes, key="championnat",
     format_func=lambda x: CHAMPIONNATS[x].nom, label_visibility="collapsed") or PAR_DEFAUT
-st.query_params["championnat"] = code
+st.query_params["championnat"] = st.session_state.dernier_championnat = code
 regles = CHAMPIONNATS[code]
 version = version_donnees()
 
@@ -654,10 +665,16 @@ with onglet_saison:
     menace = synthese["relegation"].idxmax()
     chiffre_cle(k1, "Matchs restants", nb_restants,
                 f"{nb_restants // (nb_clubs // 2)} journées sur {2 * (nb_clubs - 1)}")
-    chiffre_cle(k2, "Favori pour le titre", favori,
+    chiffre_cle(k2, "Favori pour le titre", ecusson(chemin_club(code, favori), alt="") + favori,
                 f"Champion dans {pourcent(synthese.loc[favori, 'titre'])} des saisons simulées")
-    chiffre_cle(k3, "Le plus menacé", menace,
+    chiffre_cle(k3, "Le plus menacé", ecusson(chemin_club(code, menace), alt="") + menace,
                 f"Relégué dans {pourcent(synthese.loc[menace, 'relegation'])} des saisons simulées")
+
+    def ecussons_axe(ordre, taille=18):
+        """Couche d'écussons dans la marge gauche, devant le nom de chaque club (axe y avec labelPadding=30)."""
+        logos = pd.DataFrame({"club": ordre, "logo": [image(chemin_club(code, club)) for club in ordre]})
+        return alt.Chart(logos).mark_image(width=taille, height=taille).encode(
+            y=alt.Y("club:N", sort=ordre), x=alt.value(-taille / 2 - 6), url="logo:N")
 
     graphe_points, graphe_places = st.columns(2, gap="large")
     with graphe_points:
@@ -675,7 +692,7 @@ with onglet_saison:
         </div>""")
         projection = synthese.reset_index().rename(columns={"index": "club"})
         ordre = list(synthese.index)
-        axe_y = alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False))
+        axe_y = alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False, labelPadding=30))
         infobulle = [alt.Tooltip("club:N", title="Club"), alt.Tooltip("points:Q", title="Points actuels"),
                      alt.Tooltip("prevus:Q", format=".1f", title="Points prévus à cette journée"),
                      alt.Tooltip("ecart:Q", format="+.1f", title="Écart au prévu"),
@@ -693,8 +710,8 @@ with onglet_saison:
             y=axe_y, x="points:Q", tooltip=infobulle)
         moyens = alt.Chart(projection).mark_circle(size=110, color=c["H"], opacity=1).encode(
             y=axe_y, x="points_finaux:Q", tooltip=infobulle)
-        st.altair_chart((fourchettes + ecarts + prevus + actuels + moyens).properties(height=28 * nb_clubs),
-                        width="stretch")
+        st.altair_chart((fourchettes + ecarts + prevus + actuels + moyens + ecussons_axe(ordre))
+                        .properties(height=28 * nb_clubs), width="stretch")
         mieux, moins = synthese["ecart"].idxmax(), synthese["ecart"].idxmin()
         st.caption(
             f"Plus belle surprise : {mieux}, {decimal(synthese.loc[mieux, 'ecart'], 1, signe=True)} points "
@@ -713,7 +730,7 @@ with onglet_saison:
             columns=["club", "rang", "probabilite"])
         carte = alt.Chart(distribution).mark_rect(stroke=c["fond"], strokeWidth=2, cornerRadius=2).encode(
             x=alt.X("rang:O", title="Place au classement final", axis=alt.Axis(labelAngle=0, orient="top")),
-            y=alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False)),
+            y=alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False, labelPadding=30)),
             color=alt.Color("probabilite:Q", title="Probabilité",
                             scale=alt.Scale(range=c["seq"], domain=[0, 0.1, 0.3, 0.6], clamp=True,
                                             interpolate="lab"),
@@ -721,7 +738,7 @@ with onglet_saison:
             tooltip=[alt.Tooltip("club:N", title="Club"), alt.Tooltip("rang:O", title="Place"),
                      alt.Tooltip("probabilite:Q", format=".1%", title="Probabilité")],
         )
-        st.altair_chart(carte.properties(height=28 * nb_clubs), width="stretch")
+        st.altair_chart((carte + ecussons_axe(ordre)).properties(height=28 * nb_clubs), width="stretch")
 
     st.subheader("Les chances de chaque club")
     tableau = projection.copy()
