@@ -37,14 +37,16 @@ FORME = {"V": "Victoire", "N": "Nul", "D": "Défaite"}
 
 CSS = """
 <style>
-  [data-testid="stMainBlockContainer"] { max-width: 1120px; }
-  .bandeau { border-bottom: 3px solid __accent__; padding-bottom: .7rem; margin-bottom: .2rem; }
+  [data-testid="stMainBlockContainer"] { max-width: 1640px; padding: 1.6rem 2.5rem 3rem; }
+  .entete { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr); gap: 2rem;
+            align-items: end; border-bottom: 3px solid __accent__; padding-bottom: .9rem; }
+  .bandeau { padding: 0; }
   .bandeau .sur-titre { color: __accent__; font-weight: 600; font-size: .8rem;
                         letter-spacing: .12em; text-transform: uppercase; }
   .bandeau h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 3rem; line-height: 1;
                 margin: .15rem 0 .4rem; padding: 0; text-transform: uppercase; color: __encre__; }
-  .bandeau p { margin: 0; color: __encre2__; font-size: 1rem; max-width: 46rem; }
-  .etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1rem 0 .4rem; }
+  .bandeau p { margin: 0; color: __encre2__; font-size: 1rem; max-width: 34rem; }
+  .etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 0; }
   .etape { background: __carte__; border: 1px solid __bord__; border-radius: 6px; padding: .8rem .9rem; }
   .etape b { display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 1.25rem;
              color: __encre__; }
@@ -90,6 +92,9 @@ CSS = """
                        color: __encre2__; margin: -.2rem 0 .3rem; }
   .legende-graphique span { display: inline-flex; align-items: center; gap: .45rem; }
   .legende-graphique i { display: inline-block; flex: none; box-sizing: border-box; }
+  .colonne-titre { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 600;
+                   letter-spacing: .08em; text-transform: uppercase; color: __encre2__;
+                   border-bottom: 1px solid __bord__; padding-bottom: .3rem; margin: .2rem 0 .6rem; }
   .chiffre-cle { background: __carte__; border: 1px solid __bord__; border-radius: 6px;
                  padding: .8rem 1rem; height: 100%; }
   .chiffre-cle .valeur { font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
@@ -97,8 +102,13 @@ CSS = """
   .chiffre-cle .libelle { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase;
                           color: __encre2__; }
   .chiffre-cle .detail { font-size: .88rem; color: __encre2__; margin-top: .2rem; }
+  @media (max-width: 1100px) {
+    [data-testid="stMainBlockContainer"] { padding: 1.2rem 1rem 2.5rem; }
+    .entete { grid-template-columns: 1fr; gap: 1rem; }
+  }
   @media (max-width: 640px) {
     .bandeau h1 { font-size: 2.3rem; }
+    .entete { grid-template-columns: 1fr; gap: 1rem; }
     .etapes { grid-template-columns: 1fr; }
     .affiche { grid-template-columns: 1fr; gap: .7rem; }
     .club.droite { align-items: flex-start; text-align: left; }
@@ -245,7 +255,8 @@ if "verification" not in st.session_state:
 
 codes = list(CHAMPIONNATS)
 code_url = st.query_params.get("championnat", PAR_DEFAUT)
-code = st.segmented_control(
+barre_championnat, barre_donnees, barre_bouton = st.columns([5, 4, 1.1], vertical_alignment="center")
+code = barre_championnat.segmented_control(
     "Championnat", codes, default=code_url if code_url in codes else PAR_DEFAUT,
     format_func=lambda x: CHAMPIONNATS[x].nom, label_visibility="collapsed") or PAR_DEFAUT
 st.query_params["championnat"] = code
@@ -258,6 +269,7 @@ table_actuelle = classement(saison)
 rangs_actuels = {club: i + 1 for i, club in enumerate(table_actuelle.index)}
 
 st.html(f"""
+<div class="entete">
 <div class="bandeau">
   <div class="sur-titre">Simulateur foot · {regles.pays} · saison {nom_saison(SAISON_EN_COURS)} ·
   résultats au {saison["Date"].max():%d/%m/%Y}</div>
@@ -276,16 +288,16 @@ st.html(f"""
     <span>On joue au hasard tous les matchs restants, selon ces chances, des milliers de fois.
     On compte ensuite combien de fois chaque club finit champion, en haut du tableau ou relégué.</span></div>
 </div>
+</div>
 """)
 
 heures = heures_depuis_mise_a_jour()
 age = "il y a moins d'une heure" if heures < 1 else (
     f"il y a {heures:.0f} h" if heures < 48 else f"il y a {heures / 24:.0f} jours")
-d1, d2 = st.columns([4, 1], vertical_alignment="center")
-d1.caption(f"Résultats téléchargés depuis football-data.co.uk {age}. La source est mise à jour en "
-           f"général le lundi ; l'outil va chercher les nouveaux résultats tout seul au lancement "
-           f"quand ses données ont plus de {SEUIL_HEURES} h.")
-if d2.button("Mettre à jour", width="stretch"):
+barre_donnees.caption(f"Résultats téléchargés depuis football-data.co.uk {age}. La source est mise à "
+                      f"jour en général le lundi ; l'outil va chercher les nouveaux résultats tout seul "
+                      f"au lancement quand ses données ont plus de {SEUIL_HEURES} h.")
+if barre_bouton.button("Mettre à jour", width="stretch"):
     with st.spinner("Téléchargement de la saison en cours…"):
         st.session_state.verification = actualiser()
     st.rerun()
@@ -305,101 +317,104 @@ with onglet_match:
                 "gagnant à 60 % perd ou fait nul 4 fois sur 10. Le bouton « Jouer le match » "
                 "le montre en le tirant au sort.")
 
+    gauche, droite = st.columns([5, 6], gap="large")
     clubs = list(notes.index)
-    col_dom, col_ext = st.columns(2)
+    col_dom, col_ext = gauche.columns(2)
     dom = col_dom.selectbox("Club qui reçoit", clubs, index=0)
     ext = col_ext.selectbox("Club qui se déplace", [x for x in clubs if x != dom], index=0)
     proba = probabilites(modele_retenu(code, version), [notes[dom]], [notes[ext]]).iloc[0]
 
-    def fiche(club, lieu, cote, droite=False):
-        forme = "".join(f'<i class="{r}" title="{FORME[r]}">{r}</i>' for r in forme_recente(code, version, club))
-        return (f'<div class="club{" droite" if droite else ""}"><span class="lieu">{lieu}</span>'
-                f'<span class="nom"><span class="pastille" style="background:{c[cote]}"></span>{club}</span>'
-                f'<span class="infos">Note <b>{notes[club]:.0f}</b> · {rang(rangs_actuels[club])} du classement</span>'
-                f'<div class="forme" title="5 derniers matchs, du plus ancien au plus récent">{forme}</div></div>')
+    with gauche:
+        def fiche(club, lieu, cote, droite=False):
+            forme = "".join(f'<i class="{r}" title="{FORME[r]}">{r}</i>' for r in forme_recente(code, version, club))
+            return (f'<div class="club{" droite" if droite else ""}"><span class="lieu">{lieu}</span>'
+                    f'<span class="nom"><span class="pastille" style="background:{c[cote]}"></span>{club}</span>'
+                    f'<span class="infos">Note <b>{notes[club]:.0f}</b> · {rang(rangs_actuels[club])} du classement</span>'
+                    f'<div class="forme" title="5 derniers matchs, du plus ancien au plus récent">{forme}</div></div>')
 
-    st.html(f'<div class="affiche">{fiche(dom, "Domicile", "H")}<span class="contre">contre</span>'
-            f'{fiche(ext, "Extérieur", "A", droite=True)}</div>')
+        st.html(f'<div class="affiche">{fiche(dom, "Domicile", "H")}<span class="contre">contre</span>'
+                f'{fiche(ext, "Extérieur", "A", droite=True)}</div>')
 
-    segments = "".join(
-        f'<div style="flex:{proba[r]:.4f};background:{c[r]}" title="{NOMS_ISSUES[r]}">{pourcent(proba[r])}</div>'
-        for r in ["H", "D", "A"])
-    legende = "".join(
-        f'<div><span class="pastille" style="background:{c[r]}"></span>{texte} <b>{pourcent(proba[r])}</b></div>'
-        for r, texte in [("H", f"Victoire de {dom}"), ("D", "Match nul"), ("A", f"Victoire de {ext}")])
-    st.html(f'<div class="barre">{segments}</div><div class="legende">{legende}</div>')
+        segments = "".join(
+            f'<div style="flex:{proba[r]:.4f};background:{c[r]}" title="{NOMS_ISSUES[r]}">{pourcent(proba[r])}</div>'
+            for r in ["H", "D", "A"])
+        legende = "".join(
+            f'<div><span class="pastille" style="background:{c[r]}"></span>{texte} <b>{pourcent(proba[r])}</b></div>'
+            for r, texte in [("H", f"Victoire de {dom}"), ("D", "Match nul"), ("A", f"Victoire de {ext}")])
+        st.html(f'<div class="barre">{segments}</div><div class="legende">{legende}</div>')
 
-    ecart = notes[dom] + AVANTAGE_TERRAIN - notes[ext]
-    favori = dom if ecart > 0 else ext
-    st.caption(f"Écart de notes : {ecart:+.0f} points en faveur de {favori}, en comptant le bonus de "
-               f"{AVANTAGE_TERRAIN} points accordé au club qui reçoit. Forme : V = victoire, "
-               "N = nul, D = défaite, sur les 5 derniers matchs de la saison.")
+        ecart = notes[dom] + AVANTAGE_TERRAIN - notes[ext]
+        favori = dom if ecart > 0 else ext
+        st.caption(f"Écart de notes : {ecart:+.0f} points en faveur de {favori}, en comptant le bonus de "
+                   f"{AVANTAGE_TERRAIN} points accordé au club qui reçoit. Forme : V = victoire, "
+                   "N = nul, D = défaite, sur les 5 derniers matchs de la saison.")
 
-    if "tirage" not in st.session_state:
-        st.session_state.tirage = None
-    if st.button("Jouer le match", type="primary"):
-        st.session_state.tirage = int(np.random.default_rng().integers(1_000_000))
-    if st.session_state.tirage is not None:
-        generateur = np.random.default_rng(st.session_state.tirage)
-        issues = generateur.choice(RESULTATS, size=100, p=proba[RESULTATS].to_numpy())
-        issue = issues[0]
-        texte = {"H": f"Victoire de {dom}", "D": "Match nul", "A": f"Victoire de {ext}"}[issue]
-        st.html(f'<div class="resultat"><span class="pastille" style="background:{c[issue]};'
-                f'width:1.1rem;height:1.1rem;margin:0"></span>{texte}</div>')
-        comptes = {r: int((issues == r).sum()) for r in ["H", "D", "A"]}
-        cases = "".join(f'<div style="background:{c[r]}"></div>' for r in ["H", "D", "A"]
-                        for _ in range(comptes[r]))
-        st.markdown(f"**Et si on le jouait 100 fois ?** {dom} gagne {comptes['H']} fois, "
-                    f"{comptes['D']} nuls, {ext} gagne {comptes['A']} fois. Relancez : "
-                    "les chiffres bougent un peu, mais restent proches des chances annoncées.")
-        st.html(f'<div class="gaufre">{cases}</div>')
+        if "tirage" not in st.session_state:
+            st.session_state.tirage = None
+        if st.button("Jouer le match", type="primary"):
+            st.session_state.tirage = int(np.random.default_rng().integers(1_000_000))
+        if st.session_state.tirage is not None:
+            generateur = np.random.default_rng(st.session_state.tirage)
+            issues = generateur.choice(RESULTATS, size=100, p=proba[RESULTATS].to_numpy())
+            issue = issues[0]
+            texte = {"H": f"Victoire de {dom}", "D": "Match nul", "A": f"Victoire de {ext}"}[issue]
+            st.html(f'<div class="resultat"><span class="pastille" style="background:{c[issue]};'
+                    f'width:1.1rem;height:1.1rem;margin:0"></span>{texte}</div>')
+            comptes = {r: int((issues == r).sum()) for r in ["H", "D", "A"]}
+            cases = "".join(f'<div style="background:{c[r]}"></div>' for r in ["H", "D", "A"]
+                            for _ in range(comptes[r]))
+            st.markdown(f"**Et si on le jouait 100 fois ?** {dom} gagne {comptes['H']} fois, "
+                        f"{comptes['D']} nuls, {ext} gagne {comptes['A']} fois. Relancez : "
+                        "les chiffres bougent un peu, mais restent proches des chances annoncées.")
+            st.html(f'<div class="gaufre">{cases}</div>')
 
-    st.subheader("Comment les notes ont évolué")
-    st.markdown(f"Chaque marche correspond à un match : la note monte après une victoire, baisse "
-                f"après une défaite. La ligne pointillée marque {NOTE_INITIALE}, le niveau d'un club "
-                "moyen. Survolez la courbe pour voir le match.")
-    historique = pd.concat([
-        matchs.assign(club=matchs["HomeTeam"], note=matchs["force_dom"], adversaire=matchs["AwayTeam"]),
-        matchs.assign(club=matchs["AwayTeam"], note=matchs["force_ext"], adversaire=matchs["HomeTeam"]),
-    ])
-    historique = historique[historique["club"].isin([dom, ext])]
-    historique["score"] = (historique["HomeTeam"] + " " + historique["FTHG"].astype(int).astype(str) + "–"
-                           + historique["FTAG"].astype(int).astype(str) + " " + historique["AwayTeam"])
-    survol = alt.selection_point(fields=["Date"], nearest=True, on="pointerover", empty=False)
-    base = alt.Chart(historique).encode(
-        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%Y", tickCount="year")),
-        y=alt.Y("note:Q", title="Note Elo", scale=alt.Scale(zero=False)),
-        color=alt.Color("club:N", title=None,
-                        scale=alt.Scale(domain=[dom, ext], range=[c["H"], c["A"]]),
-                        legend=alt.Legend(orient="top")),
-    )
-    moyenne = alt.Chart(pd.DataFrame({"y": [NOTE_INITIALE]})).mark_rule(
-        strokeDash=[4, 4], color=c["D"]).encode(y="y:Q")
-    lignes = base.mark_line(strokeWidth=2, interpolate="step-after")
-    points = base.mark_circle(size=80).encode(
-        opacity=alt.condition(survol, alt.value(1), alt.value(0)),
-        tooltip=[alt.Tooltip("Date:T", format="%d/%m/%Y"), alt.Tooltip("club:N", title="Club"),
-                 alt.Tooltip("note:Q", format=".0f", title="Note avant le match"),
-                 alt.Tooltip("score:N", title="Match")],
-    ).add_params(survol)
-    st.altair_chart((moyenne + lignes + points).properties(height=320), width="stretch")
+    with droite:
+        st.subheader("Comment les notes ont évolué")
+        st.markdown(f"Chaque marche correspond à un match : la note monte après une victoire, baisse "
+                    f"après une défaite. La ligne pointillée marque {NOTE_INITIALE}, le niveau d'un club "
+                    "moyen. Survolez la courbe pour voir le match.")
+        historique = pd.concat([
+            matchs.assign(club=matchs["HomeTeam"], note=matchs["force_dom"], adversaire=matchs["AwayTeam"]),
+            matchs.assign(club=matchs["AwayTeam"], note=matchs["force_ext"], adversaire=matchs["HomeTeam"]),
+        ])
+        historique = historique[historique["club"].isin([dom, ext])]
+        historique["score"] = (historique["HomeTeam"] + " " + historique["FTHG"].astype(int).astype(str) + "–"
+                               + historique["FTAG"].astype(int).astype(str) + " " + historique["AwayTeam"])
+        survol = alt.selection_point(fields=["Date"], nearest=True, on="pointerover", empty=False)
+        base = alt.Chart(historique).encode(
+            x=alt.X("Date:T", title=None, axis=alt.Axis(format="%Y", tickCount="year")),
+            y=alt.Y("note:Q", title="Note Elo", scale=alt.Scale(zero=False)),
+            color=alt.Color("club:N", title=None,
+                            scale=alt.Scale(domain=[dom, ext], range=[c["H"], c["A"]]),
+                            legend=alt.Legend(orient="top")),
+        )
+        moyenne = alt.Chart(pd.DataFrame({"y": [NOTE_INITIALE]})).mark_rule(
+            strokeDash=[4, 4], color=c["D"]).encode(y="y:Q")
+        lignes = base.mark_line(strokeWidth=2, interpolate="step-after")
+        points = base.mark_circle(size=80).encode(
+            opacity=alt.condition(survol, alt.value(1), alt.value(0)),
+            tooltip=[alt.Tooltip("Date:T", format="%d/%m/%Y"), alt.Tooltip("club:N", title="Club"),
+                     alt.Tooltip("note:Q", format=".0f", title="Note avant le match"),
+                     alt.Tooltip("score:N", title="Match")],
+        ).add_params(survol)
+        st.altair_chart((moyenne + lignes + points).properties(height=320), width="stretch")
 
-    face_a_face = matchs[matchs["HomeTeam"].isin([dom, ext]) & matchs["AwayTeam"].isin([dom, ext])]
-    if len(face_a_face):
-        victoires_dom = ((face_a_face["FTR"] == "H") & (face_a_face["HomeTeam"] == dom)).sum() + \
-                        ((face_a_face["FTR"] == "A") & (face_a_face["AwayTeam"] == dom)).sum()
-        nuls = (face_a_face["FTR"] == "D").sum()
-        st.subheader("Leurs confrontations depuis 2021")
-        st.markdown(f"{len(face_a_face)} matchs : **{victoires_dom}** victoires de {dom}, **{nuls}** nuls, "
-                    f"**{len(face_a_face) - victoires_dom - nuls}** victoires de {ext}.")
-        st.dataframe(
-            face_a_face.sort_values("Date", ascending=False)
-            .assign(Saison=face_a_face["Saison"].map(nom_saison),
-                    Score=face_a_face["FTHG"].astype(int).astype(str) + " – " + face_a_face["FTAG"].astype(int).astype(str))
-            [["Date", "Saison", "HomeTeam", "Score", "AwayTeam"]]
-            .rename(columns={"HomeTeam": "Domicile", "AwayTeam": "Extérieur"}),
-            hide_index=True, width="stretch",
-            column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY")})
+        face_a_face = matchs[matchs["HomeTeam"].isin([dom, ext]) & matchs["AwayTeam"].isin([dom, ext])]
+        if len(face_a_face):
+            victoires_dom = ((face_a_face["FTR"] == "H") & (face_a_face["HomeTeam"] == dom)).sum() + \
+                            ((face_a_face["FTR"] == "A") & (face_a_face["AwayTeam"] == dom)).sum()
+            nuls = (face_a_face["FTR"] == "D").sum()
+            st.subheader("Leurs confrontations depuis 2021")
+            st.markdown(f"{len(face_a_face)} matchs : **{victoires_dom}** victoires de {dom}, **{nuls}** nuls, "
+                        f"**{len(face_a_face) - victoires_dom - nuls}** victoires de {ext}.")
+            st.dataframe(
+                face_a_face.sort_values("Date", ascending=False)
+                .assign(Saison=face_a_face["Saison"].map(nom_saison),
+                        Score=face_a_face["FTHG"].astype(int).astype(str) + " – " + face_a_face["FTAG"].astype(int).astype(str))
+                [["Date", "Saison", "HomeTeam", "Score", "AwayTeam"]]
+                .rename(columns={"HomeTeam": "Domicile", "AwayTeam": "Extérieur"}),
+                hide_index=True, width="stretch",
+                column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY")})
 
 # ---------- La fin de saison ----------
 
@@ -410,7 +425,7 @@ with onglet_saison:
                 "de 65 %. Plus on simule de saisons, plus les pourcentages sont stables ; la graine "
                 "permet de rejouer exactement les mêmes tirages.")
 
-    r1, r2 = st.columns([2, 1])
+    r1, r2, k1, k2, k3 = st.columns([1.5, .8, 1, 1, 1], vertical_alignment="bottom")
     nb = r1.select_slider("Nombre de saisons simulées", [1_000, 5_000, 10_000, 50_000], value=10_000,
                           format_func=lambda n: f"{n:,}".replace(",", " "))
     graine = r2.number_input("Graine du hasard", min_value=0, value=0, step=1,
@@ -420,7 +435,6 @@ with onglet_saison:
 
     favori = synthese["titre"].idxmax()
     menace = synthese["relegation"].idxmax()
-    k1, k2, k3 = st.columns(3)
     chiffre_cle(k1, "Matchs restants", nb_restants,
                 f"{nb_restants // (nb_clubs // 2)} journées sur {2 * (nb_clubs - 1)}")
     chiffre_cle(k2, "Favori pour le titre", favori,
@@ -428,49 +442,69 @@ with onglet_saison:
     chiffre_cle(k3, "Le plus menacé", menace,
                 f"Relégué dans {pourcent(synthese.loc[menace, 'relegation'])} des saisons simulées")
 
-    st.subheader("Combien de points en fin de saison ?")
-    st.markdown("Le point indique le total moyen de chaque club à la fin de la saison. Le trait couvre "
-                "8 saisons simulées sur 10 : plus il est long, plus l'avenir du club est incertain. "
-                "À gauche, le petit repère gris montre ses points aujourd'hui et le losange les points "
-                "que le modèle lui prévoyait à cette journée : un repère à droite du losange, c'est un "
-                "club qui a fait mieux que prévu.")
-    st.html(f"""<div class="legende-graphique">
-      <span><i style="width:3px;height:14px;background:{c['D']}"></i>Points aujourd'hui</span>
-      <span><i style="width:9px;height:9px;border:2px solid {c['encre2']};transform:rotate(45deg)"></i>
-        Points prévus à cette journée</span>
-      <span><i style="width:11px;height:11px;border-radius:50%;background:{c['H']}"></i>
-        Points en fin de saison (moyenne)</span>
-      <span><i style="width:22px;height:3px;background:{c['H']};opacity:.45"></i>8 saisons sur 10</span>
-    </div>""")
-    projection = synthese.reset_index().rename(columns={"index": "club"})
-    ordre = list(synthese.index)
-    axe_y = alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False))
-    infobulle = [alt.Tooltip("club:N", title="Club"), alt.Tooltip("points:Q", title="Points actuels"),
-                 alt.Tooltip("prevus:Q", format=".1f", title="Points prévus à cette journée"),
-                 alt.Tooltip("ecart:Q", format="+.1f", title="Écart au prévu"),
-                 alt.Tooltip("points_finaux:Q", format=".0f", title="Points finaux (moyenne)"),
-                 alt.Tooltip("bas:Q", format=".0f", title="Fourchette basse"),
-                 alt.Tooltip("haut_points:Q", format=".0f", title="Fourchette haute")]
-    fourchettes = alt.Chart(projection).mark_rule(strokeWidth=3, color=c["H"], opacity=.45).encode(
-        y=axe_y, x=alt.X("bas:Q", title="Points"), x2="haut_points:Q", tooltip=infobulle)
-    ecarts = alt.Chart(projection).mark_rule(strokeWidth=1.5, color=c["encre2"], opacity=.6).encode(
-        y=axe_y, x="prevus:Q", x2="points:Q", tooltip=infobulle)
-    prevus = alt.Chart(projection).mark_point(shape="diamond", size=70, filled=True, color=c["carte"],
-                                              stroke=c["encre2"], strokeWidth=2, opacity=1).encode(
-        y=axe_y, x="prevus:Q", tooltip=infobulle)
-    actuels = alt.Chart(projection).mark_tick(color=c["D"], thickness=2, size=14).encode(
-        y=axe_y, x="points:Q", tooltip=infobulle)
-    moyens = alt.Chart(projection).mark_circle(size=110, color=c["H"], opacity=1).encode(
-        y=axe_y, x="points_finaux:Q", tooltip=infobulle)
-    st.altair_chart((fourchettes + ecarts + prevus + actuels + moyens).properties(height=26 * nb_clubs),
-                    width="stretch")
-    mieux, moins = synthese["ecart"].idxmax(), synthese["ecart"].idxmin()
-    st.caption(
-        f"Plus belle surprise : {mieux}, {decimal(synthese.loc[mieux, 'ecart'], 1, signe=True)} points "
-        f"par rapport au prévu. Plus grosse déception : {moins}, "
-        f"{decimal(synthese.loc[moins, 'ecart'], 1, signe=True)}. Le prévu additionne, match après match, "
-        "les points qu'on pouvait attendre la veille avec les notes Elo du moment "
-        "(3 × chances de victoire + 1 × chances de nul).")
+    graphe_points, graphe_places = st.columns(2, gap="large")
+    with graphe_points:
+        st.subheader("Combien de points en fin de saison ?")
+        st.markdown("Le point donne le total moyen en fin de saison, le trait couvre 8 saisons simulées "
+                    "sur 10. À gauche, un repère gris à droite du losange, c'est un club qui a fait mieux "
+                    "que prévu jusqu'ici.")
+        st.html(f"""<div class="legende-graphique">
+          <span><i style="width:3px;height:14px;background:{c['D']}"></i>Points aujourd'hui</span>
+          <span><i style="width:9px;height:9px;border:2px solid {c['encre2']};transform:rotate(45deg)"></i>
+            Points prévus à cette journée</span>
+          <span><i style="width:11px;height:11px;border-radius:50%;background:{c['H']}"></i>
+            Points en fin de saison (moyenne)</span>
+          <span><i style="width:22px;height:3px;background:{c['H']};opacity:.45"></i>8 saisons sur 10</span>
+        </div>""")
+        projection = synthese.reset_index().rename(columns={"index": "club"})
+        ordre = list(synthese.index)
+        axe_y = alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False))
+        infobulle = [alt.Tooltip("club:N", title="Club"), alt.Tooltip("points:Q", title="Points actuels"),
+                     alt.Tooltip("prevus:Q", format=".1f", title="Points prévus à cette journée"),
+                     alt.Tooltip("ecart:Q", format="+.1f", title="Écart au prévu"),
+                     alt.Tooltip("points_finaux:Q", format=".0f", title="Points finaux (moyenne)"),
+                     alt.Tooltip("bas:Q", format=".0f", title="Fourchette basse"),
+                     alt.Tooltip("haut_points:Q", format=".0f", title="Fourchette haute")]
+        fourchettes = alt.Chart(projection).mark_rule(strokeWidth=3, color=c["H"], opacity=.45).encode(
+            y=axe_y, x=alt.X("bas:Q", title="Points"), x2="haut_points:Q", tooltip=infobulle)
+        ecarts = alt.Chart(projection).mark_rule(strokeWidth=1.5, color=c["encre2"], opacity=.6).encode(
+            y=axe_y, x="prevus:Q", x2="points:Q", tooltip=infobulle)
+        prevus = alt.Chart(projection).mark_point(shape="diamond", size=70, filled=True, color=c["carte"],
+                                                  stroke=c["encre2"], strokeWidth=2, opacity=1).encode(
+            y=axe_y, x="prevus:Q", tooltip=infobulle)
+        actuels = alt.Chart(projection).mark_tick(color=c["D"], thickness=2, size=14).encode(
+            y=axe_y, x="points:Q", tooltip=infobulle)
+        moyens = alt.Chart(projection).mark_circle(size=110, color=c["H"], opacity=1).encode(
+            y=axe_y, x="points_finaux:Q", tooltip=infobulle)
+        st.altair_chart((fourchettes + ecarts + prevus + actuels + moyens).properties(height=28 * nb_clubs),
+                        width="stretch")
+        mieux, moins = synthese["ecart"].idxmax(), synthese["ecart"].idxmin()
+        st.caption(
+            f"Plus belle surprise : {mieux}, {decimal(synthese.loc[mieux, 'ecart'], 1, signe=True)} points "
+            f"par rapport au prévu. Plus grosse déception : {moins}, "
+            f"{decimal(synthese.loc[moins, 'ecart'], 1, signe=True)}. Le prévu additionne, match après match, "
+            "les points qu'on pouvait attendre la veille avec les notes Elo du moment "
+            "(3 × chances de victoire + 1 × chances de nul).")
+
+    with graphe_places:
+        st.subheader("Où chaque club peut finir")
+        st.markdown("Une ligne par club, une colonne par place finale : plus la case est foncée, plus "
+                    "la place est probable. Une ligne étalée signale une saison encore très ouverte.")
+        distribution = pd.DataFrame(
+            [(club, place, (rangs[:, i] == place).mean())
+             for i, club in enumerate(ordre_clubs) for place in range(1, nb_clubs + 1)],
+            columns=["club", "rang", "probabilite"])
+        carte = alt.Chart(distribution).mark_rect(stroke=c["fond"], strokeWidth=2, cornerRadius=2).encode(
+            x=alt.X("rang:O", title="Place au classement final", axis=alt.Axis(labelAngle=0, orient="top")),
+            y=alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False)),
+            color=alt.Color("probabilite:Q", title="Probabilité",
+                            scale=alt.Scale(range=c["seq"], domain=[0, 0.1, 0.3, 0.6], clamp=True,
+                                            interpolate="lab"),
+                            legend=alt.Legend(format=".0%", orient="bottom", gradientLength=220)),
+            tooltip=[alt.Tooltip("club:N", title="Club"), alt.Tooltip("rang:O", title="Place"),
+                     alt.Tooltip("probabilite:Q", format=".1%", title="Probabilité")],
+        )
+        st.altair_chart(carte.properties(height=28 * nb_clubs), width="stretch")
 
     st.subheader("Les chances de chaque club")
     tableau = projection.copy()
@@ -505,26 +539,6 @@ with onglet_saison:
     st.caption("Clubs rangés du meilleur au moins bon classement final attendu. Les colonnes sont "
                "triables : cliquez sur un titre.")
 
-    st.subheader("Où chaque club peut finir")
-    st.markdown("Chaque ligne est un club, chaque colonne une place au classement final. Plus la case "
-                "est foncée, plus cette place est probable. Une ligne qui s'étale sur beaucoup de "
-                "colonnes signale un club dont la saison reste très ouverte.")
-    distribution = pd.DataFrame(
-        [(club, place, (rangs[:, i] == place).mean())
-         for i, club in enumerate(ordre_clubs) for place in range(1, nb_clubs + 1)],
-        columns=["club", "rang", "probabilite"])
-    carte = alt.Chart(distribution).mark_rect(stroke=c["fond"], strokeWidth=2, cornerRadius=2).encode(
-        x=alt.X("rang:O", title="Place au classement final", axis=alt.Axis(labelAngle=0, orient="top")),
-        y=alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False)),
-        color=alt.Color("probabilite:Q", title="Probabilité",
-                        scale=alt.Scale(range=c["seq"], domain=[0, 0.1, 0.3, 0.6], clamp=True,
-                                        interpolate="lab"),
-                        legend=alt.Legend(format=".0%", orient="bottom", gradientLength=220)),
-        tooltip=[alt.Tooltip("club:N", title="Club"), alt.Tooltip("rang:O", title="Place"),
-                 alt.Tooltip("probabilite:Q", format=".1%", title="Probabilité")],
-    )
-    st.altair_chart(carte.properties(height=30 * nb_clubs), width="stretch")
-
     with st.expander("Hypothèses et limites de la simulation"):
         st.markdown(
             "- Les notes des clubs restent **figées à leur valeur du jour** : la simulation ne fait pas "
@@ -553,77 +567,81 @@ with onglet_fiabilite:
         "On compare ici ses prédictions à ce qui s'est vraiment passé. Le simulateur utilise ensuite "
         f"le même modèle, réentraîné en ajoutant {nom_saison(SAISON_TEST)}.")
 
+    fiab_gauche, fiab_droite = st.columns(2, gap="large")
     precision = (proba_test.idxmax(axis=1) == reel).mean()
     domicile = (reel == "H").mean()
-    st.subheader("Le favori du modèle gagne-t-il ?")
-    st.markdown(f"Si l'on pariait à chaque match sur l'issue que le modèle juge la plus probable, on "
-                f"aurait raison **{pourcent(precision)}** du temps. C'est mieux que de toujours miser "
-                f"sur le club qui reçoit ({pourcent(domicile)}) ou de choisir au hasard (33 %).")
-    comparaison = pd.DataFrame({
-        "methode": ["Le modèle", "Toujours le club qui reçoit", "Au hasard"],
-        "taux": [precision, domicile, 1 / 3],
-        "role": ["modele", "reference", "reference"],
-    })
-    barres = alt.Chart(comparaison).mark_bar(cornerRadiusEnd=4).encode(
-        y=alt.Y("methode:N", sort=list(comparaison["methode"]), title=None,
-                scale=alt.Scale(paddingInner=0.35), axis=alt.Axis(labelLimit=220)),
-        x=alt.X("taux:Q", title="Part de pronostics justes", axis=alt.Axis(format=".0%"),
-                scale=alt.Scale(domain=[0, 0.6])),
-        color=alt.Color("role:N", scale=alt.Scale(domain=["modele", "reference"],
-                                                  range=[c["H"], c["D"]]), legend=None),
-        tooltip=[alt.Tooltip("methode:N", title="Méthode"),
-                 alt.Tooltip("taux:Q", format=".1%", title="Pronostics justes")],
-    )
-    etiquettes = barres.mark_text(align="left", dx=6, color=c["encre"], fontWeight=600).encode(
-        text=alt.Text("taux:Q", format=".0%"), color=alt.value(c["encre"]))
-    st.altair_chart((barres + etiquettes).properties(height=150), width="stretch")
+    with fiab_gauche:
+        st.subheader("Le favori du modèle gagne-t-il ?")
+        st.markdown(f"Si l'on pariait à chaque match sur l'issue que le modèle juge la plus probable, on "
+                    f"aurait raison **{pourcent(precision)}** du temps. C'est mieux que de toujours miser "
+                    f"sur le club qui reçoit ({pourcent(domicile)}) ou de choisir au hasard (33 %).")
+        comparaison = pd.DataFrame({
+            "methode": ["Le modèle", "Toujours le club qui reçoit", "Au hasard"],
+            "taux": [precision, domicile, 1 / 3],
+            "role": ["modele", "reference", "reference"],
+        })
+        barres = alt.Chart(comparaison).mark_bar(cornerRadiusEnd=4).encode(
+            y=alt.Y("methode:N", sort=list(comparaison["methode"]), title=None,
+                    scale=alt.Scale(paddingInner=0.35), axis=alt.Axis(labelLimit=220)),
+            x=alt.X("taux:Q", title="Part de pronostics justes", axis=alt.Axis(format=".0%"),
+                    scale=alt.Scale(domain=[0, 0.6])),
+            color=alt.Color("role:N", scale=alt.Scale(domain=["modele", "reference"],
+                                                      range=[c["H"], c["D"]]), legend=None),
+            tooltip=[alt.Tooltip("methode:N", title="Méthode"),
+                     alt.Tooltip("taux:Q", format=".1%", title="Pronostics justes")],
+        )
+        etiquettes = barres.mark_text(align="left", dx=6, color=c["encre"], fontWeight=600).encode(
+            text=alt.Text("taux:Q", format=".0%"), color=alt.value(c["encre"]))
+        st.altair_chart((barres + etiquettes).properties(height=150), width="stretch")
 
-    st.subheader("Quand il annonce 40 %, est-ce que ça arrive 4 fois sur 10 ?")
-    st.markdown("C'est la vraie question pour un simulateur : les pourcentages doivent être honnêtes. "
-                "On range les matchs selon la chance annoncée, puis on regarde combien de fois l'issue "
-                "s'est vraiment produite. Un modèle parfait aurait tous ses points sur la diagonale "
-                "pointillée ; au-dessus, il sous-estime ; en dessous, il surestime.")
-    lignes = []
-    for issue in RESULTATS:
-        tranches = pd.qcut(proba_test[issue], 5, duplicates="drop")
-        groupe = pd.DataFrame({"annonce": proba_test[issue], "arrive": reel == issue}).groupby(tranches, observed=True)
-        for _, g in groupe:
-            lignes.append((NOMS_ISSUES[issue], g["annonce"].mean(), g["arrive"].mean(), len(g)))
-    calibration = pd.DataFrame(lignes, columns=["issue", "annonce", "arrive", "matchs"])
-    echelle = alt.Scale(domain=[NOMS_ISSUES[r] for r in ["H", "D", "A"]], range=[c[r] for r in ["H", "D", "A"]])
-    diagonale = alt.Chart(pd.DataFrame({"x": [0, 0.8]})).mark_line(
-        strokeDash=[4, 4], strokeWidth=1, color=c["D"]).encode(x="x:Q", y="x:Q")
-    courbes = alt.Chart(calibration).encode(
-        x=alt.X("annonce:Q", title="Chance annoncée par le modèle", axis=alt.Axis(format=".0%"),
-                scale=alt.Scale(domain=[0, 0.8])),
-        y=alt.Y("arrive:Q", title="Ce qui est vraiment arrivé", axis=alt.Axis(format=".0%"),
-                scale=alt.Scale(domain=[0, 0.8])),
-        color=alt.Color("issue:N", scale=echelle, title=None, legend=alt.Legend(orient="top")),
-        order="annonce:Q",
-        tooltip=[alt.Tooltip("issue:N", title="Issue"),
-                 alt.Tooltip("annonce:Q", format=".0%", title="Annoncé"),
-                 alt.Tooltip("arrive:Q", format=".0%", title="Arrivé"),
-                 alt.Tooltip("matchs:Q", title="Matchs")],
-    )
-    st.altair_chart((diagonale + courbes.mark_line(strokeWidth=2) + courbes.mark_circle(size=90, opacity=1))
-                    .properties(height=380), width="stretch")
-    st.caption("Chaque point regroupe un cinquième des matchs de la saison test. Le modèle n'annonce "
-               f"jamais plus de {pourcent(proba_test['D'].max())} de chances de match nul : il "
-               "repère mal les matchs serrés, une limite connue des modèles fondés sur la seule note.")
+    with fiab_droite:
+        st.subheader("Quand il annonce 40 %, est-ce que ça arrive 4 fois sur 10 ?")
+        st.markdown("C'est la vraie question pour un simulateur : les pourcentages doivent être honnêtes. "
+                    "On range les matchs selon la chance annoncée, puis on regarde combien de fois l'issue "
+                    "s'est vraiment produite. Un modèle parfait aurait tous ses points sur la diagonale "
+                    "pointillée ; au-dessus, il sous-estime ; en dessous, il surestime.")
+        lignes = []
+        for issue in RESULTATS:
+            tranches = pd.qcut(proba_test[issue], 5, duplicates="drop")
+            groupe = pd.DataFrame({"annonce": proba_test[issue], "arrive": reel == issue}).groupby(tranches, observed=True)
+            for _, g in groupe:
+                lignes.append((NOMS_ISSUES[issue], g["annonce"].mean(), g["arrive"].mean(), len(g)))
+        calibration = pd.DataFrame(lignes, columns=["issue", "annonce", "arrive", "matchs"])
+        echelle = alt.Scale(domain=[NOMS_ISSUES[r] for r in ["H", "D", "A"]], range=[c[r] for r in ["H", "D", "A"]])
+        diagonale = alt.Chart(pd.DataFrame({"x": [0, 0.8]})).mark_line(
+            strokeDash=[4, 4], strokeWidth=1, color=c["D"]).encode(x="x:Q", y="x:Q")
+        courbes = alt.Chart(calibration).encode(
+            x=alt.X("annonce:Q", title="Chance annoncée par le modèle", axis=alt.Axis(format=".0%"),
+                    scale=alt.Scale(domain=[0, 0.8])),
+            y=alt.Y("arrive:Q", title="Ce qui est vraiment arrivé", axis=alt.Axis(format=".0%"),
+                    scale=alt.Scale(domain=[0, 0.8])),
+            color=alt.Color("issue:N", scale=echelle, title=None, legend=alt.Legend(orient="top")),
+            order="annonce:Q",
+            tooltip=[alt.Tooltip("issue:N", title="Issue"),
+                     alt.Tooltip("annonce:Q", format=".0%", title="Annoncé"),
+                     alt.Tooltip("arrive:Q", format=".0%", title="Arrivé"),
+                     alt.Tooltip("matchs:Q", title="Matchs")],
+        )
+        st.altair_chart((diagonale + courbes.mark_line(strokeWidth=2) + courbes.mark_circle(size=90, opacity=1))
+                        .properties(height=380), width="stretch")
+        st.caption("Chaque point regroupe un cinquième des matchs de la saison test. Le modèle n'annonce "
+                   f"jamais plus de {pourcent(proba_test['D'].max())} de chances de match nul : il "
+                   "repère mal les matchs serrés, une limite connue des modèles fondés sur la seule note.")
 
-    st.subheader(f"Les plus grosses surprises de {nom_saison(SAISON_TEST)}")
-    st.markdown("Les matchs dont le résultat semblait le moins probable au modèle. Ce sont eux qui "
-                "rappellent qu'une chance de 15 % finit toujours par arriver.")
-    chance_reelle = proba_test.to_numpy()[np.arange(len(test)), proba_test.columns.get_indexer(reel)]
-    surprises = test.assign(chance=chance_reelle * 100).nsmallest(8, "chance")
-    st.dataframe(
-        surprises.assign(Score=surprises["FTHG"].astype(int).astype(str) + " – " + surprises["FTAG"].astype(int).astype(str),
-                         Issue=surprises["FTR"].map(NOMS_ISSUES))
-        [["Date", "HomeTeam", "Score", "AwayTeam", "Issue", "chance"]]
-        .rename(columns={"HomeTeam": "Domicile", "AwayTeam": "Extérieur"}),
-        hide_index=True, width="stretch",
-        column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                       "chance": st.column_config.NumberColumn("Chance annoncée", format="%.0f %%")})
+    with fiab_gauche:
+        st.subheader(f"Les plus grosses surprises de {nom_saison(SAISON_TEST)}")
+        st.markdown("Les matchs dont le résultat semblait le moins probable au modèle. Ce sont eux qui "
+                    "rappellent qu'une chance de 15 % finit toujours par arriver.")
+        chance_reelle = proba_test.to_numpy()[np.arange(len(test)), proba_test.columns.get_indexer(reel)]
+        surprises = test.assign(chance=chance_reelle * 100).nsmallest(8, "chance")
+        st.dataframe(
+            surprises.assign(Score=surprises["FTHG"].astype(int).astype(str) + " – " + surprises["FTAG"].astype(int).astype(str),
+                             Issue=surprises["FTR"].map(NOMS_ISSUES))
+            [["Date", "HomeTeam", "Score", "AwayTeam", "Issue", "chance"]]
+            .rename(columns={"HomeTeam": "Domicile", "AwayTeam": "Extérieur"}),
+            hide_index=True, width="stretch",
+            column_config={"Date": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                           "chance": st.column_config.NumberColumn("Chance annoncée", format="%.0f %%")})
 
     with st.expander("Pour les curieux : les scores techniques"):
         (log_m, brier_m), (log_r, brier_r) = scores["modele"], scores["frequences"]
