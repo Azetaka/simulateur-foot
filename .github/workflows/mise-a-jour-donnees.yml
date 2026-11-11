@@ -1,0 +1,52 @@
+# Met à jour data/resultats.csv deux fois par semaine et le commite sur develop.
+# football-data.co.uk publie en général le lundi (week-end) et en milieu de
+# semaine (matchs du mardi-mercredi) : on passe le mardi et le vendredi matin.
+#
+# GitHub ne lance les tâches planifiées que depuis la branche par défaut :
+# ce fichier doit être présent sur main pour que le planning s'active.
+# Lancement à la main : onglet Actions → « Mise à jour des données » → Run workflow.
+
+name: Mise à jour des données
+
+on:
+  schedule:
+    - cron: "0 6 * * 2,5"  # mardi et vendredi, 6 h UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mise-a-jour-donnees
+  cancel-in-progress: false
+
+jobs:
+  mise-a-jour:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Installer le projet
+        run: uv sync --locked
+
+      - name: Télécharger la saison en cours
+        run: uv run simulateur-foot maj
+
+      - name: Vérifier que tout fonctionne avec les nouvelles données
+        run: uv run pytest -q
+
+      - name: Commiter les nouveaux résultats
+        run: |
+          if git diff --quiet -- data/resultats.csv; then
+            echo "Aucun nouveau match."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/resultats.csv
+          git commit -m "Données : résultats au $(date -u +%d/%m/%Y)"
+          git push

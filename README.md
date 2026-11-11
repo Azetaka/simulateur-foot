@@ -28,7 +28,7 @@ Les résultats viennent de [football-data.co.uk](https://www.football-data.co.uk
 
 - **Automatiquement** : au lancement, l'interface retélécharge la saison en cours si ses données ont plus de 12 h (quelques secondes). Sans réseau, elle continue avec les données locales et le signale.
 - **À la demande** : bouton « Mettre à jour » dans l'interface, ou `uv run simulateur-foot maj`.
-- Une mise à jour modifie `data/resultats.csv` : pensez à le commiter pour que le dépôt reste à jour.
+- **Sur GitHub** : la tâche [Mise à jour des données](.github/workflows/mise-a-jour-donnees.yml) tourne le mardi et le vendredi à 6 h UTC. Elle télécharge la saison en cours, lance les tests et commite `data/resultats.csv` sur `develop` s'il y a de nouveaux matchs. GitHub ne lance les tâches planifiées que depuis la branche par défaut : le fichier doit être présent sur `main`. Elle se lance aussi à la main depuis l'onglet Actions.
 
 ## Ligne de commande
 
