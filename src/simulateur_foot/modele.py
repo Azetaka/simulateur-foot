@@ -6,9 +6,10 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
-from force_clubs import DOSSIER_DATA
-from variables import VARIABLES
+from .variables import VARIABLES, construire_table
 
 FORCES = ["force_dom", "force_ext"]
 PROMUS = ["promu_dom", "promu_ext"]
@@ -32,8 +33,8 @@ TIRAGES_BOOTSTRAP = 2000
 
 
 def charger_donnees():
-    """Lit la table des matchs produite par variables.py."""
-    return pd.read_csv(DOSSIER_DATA / "matchs_variables.csv", parse_dates=["Date"])
+    """Table des matchs avec toutes les variables, recalculée depuis les résultats."""
+    return construire_table()
 
 
 def creer_modele(**parametres):
@@ -44,6 +45,15 @@ def creer_modele(**parametres):
     match précédent) sont envoyés du côté qui réduit le plus l'erreur.
     """
     return HistGradientBoostingClassifier(random_state=0, **parametres)
+
+
+def creer_logistique():
+    """Régression logistique multinomiale, sur des notes centrées-réduites.
+
+    Sans mise à l'échelle, les notes (autour de 1500) empêchent l'optimiseur
+    de converger en 100 itérations.
+    """
+    return make_pipeline(StandardScaler(), LogisticRegression())
 
 
 def probabilites(modele, matchs, colonnes):
@@ -91,7 +101,7 @@ def proba_frequences(entrainement, matchs):
 
 def proba_logistique_forces(entrainement, matchs):
     """Référence 2 : régression logistique multinomiale sur force_dom et force_ext."""
-    modele = LogisticRegression().fit(entrainement[FORCES], entrainement["FTR"])
+    modele = creer_logistique().fit(entrainement[FORCES], entrainement["FTR"])
     return probabilites(modele, matchs, FORCES)
 
 

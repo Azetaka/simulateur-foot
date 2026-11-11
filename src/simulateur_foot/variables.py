@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from force_clubs import DOSSIER_DATA, calculer_forces, charger_matchs
+from .force_clubs import DOSSIER_DATA, calculer_forces, charger_matchs
 
 FENETRE = 5
 POINTS = {"H": (3, 0), "D": (1, 1), "A": (0, 3)}
@@ -51,15 +51,20 @@ def ajouter_variables(par_club):
     return par_club
 
 
-def main():
-    matchs, _ = calculer_forces(charger_matchs())
+def construire_table(championnat="F1"):
+    """Une ligne par match, avec la force et les variables des deux équipes."""
+    matchs, _ = calculer_forces(charger_matchs(championnat))
     par_club = ajouter_variables(table_par_club(matchs))
 
     # Retour à une ligne par match, avec les variables des deux équipes
     for lieu in ["dom", "ext"]:
         cote = par_club[par_club["lieu"] == lieu].set_index("id_match")[VARIABLES]
         matchs = matchs.join(cote.add_suffix(f"_{lieu}"))
+    return matchs
 
+
+def main():
+    matchs = construire_table()
     matchs.to_csv(DOSSIER_DATA / "matchs_variables.csv", index=False)
     print(f"{len(matchs)} matchs, {matchs.shape[1]} colonnes")
 

@@ -2,7 +2,7 @@
 
 from itertools import product
 
-from force_clubs import SCORE_REEL, calculer_forces, charger_matchs
+from .force_clubs import SCORE_REEL, calculer_forces, charger_matchs
 
 GRILLE = {
     "k": [10, 15, 20, 25, 30, 40],
