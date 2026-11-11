@@ -34,6 +34,23 @@ def classement(matchs_saison):
     return table.sort_values(["points", "diff_buts"], ascending=False)
 
 
+def points_attendus(matchs_saison, proba):
+    """Points que le modèle attendait de chaque club sur les matchs déjà joués.
+
+    proba donne, pour chaque match (même ordre que matchs_saison), les chances
+    A, D, H calculées avec les notes d'avant le match : c'est le pronostic qu'on
+    aurait fait la veille, pas une relecture après coup.
+    """
+    proba = proba.reset_index(drop=True)
+    dom = 3 * proba["H"] + proba["D"]
+    ext = 3 * proba["A"] + proba["D"]
+    lignes = pd.concat([
+        pd.DataFrame({"club": matchs_saison["HomeTeam"].to_numpy(), "attendus": dom.to_numpy()}),
+        pd.DataFrame({"club": matchs_saison["AwayTeam"].to_numpy(), "attendus": ext.to_numpy()}),
+    ])
+    return lignes.groupby("club")["attendus"].sum()
+
+
 def matchs_restants(matchs_saison):
     """Toutes les affiches aller et retour qui n'ont pas encore été jouées."""
     clubs = sorted(set(matchs_saison["HomeTeam"]) | set(matchs_saison["AwayTeam"]))

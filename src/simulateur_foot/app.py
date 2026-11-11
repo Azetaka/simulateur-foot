@@ -15,7 +15,7 @@ from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT
                                     proba_frequences, proba_logistique_forces, selection)
 from simulateur_foot.prediction import (SAISON_EN_COURS, SAISONS_APPRENTISSAGE, charger_forces,
                                         entrainer, probabilites)
-from simulateur_foot.simulation import classement, matchs_restants, resume, simuler
+from simulateur_foot.simulation import classement, matchs_restants, points_attendus, resume, simuler
 
 # Jetons de couleur. Données : palette validée pour les daltoniens (domicile, nul, extérieur).
 THEMES = {
@@ -86,6 +86,10 @@ CSS = """
   .gaufre { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; max-width: 560px;
             margin: .5rem 0 .4rem; }
   .gaufre div { aspect-ratio: 1; border-radius: 2px; }
+  .legende-graphique { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .85rem;
+                       color: __encre2__; margin: -.2rem 0 .3rem; }
+  .legende-graphique span { display: inline-flex; align-items: center; gap: .45rem; }
+  .legende-graphique i { display: inline-block; flex: none; box-sizing: border-box; }
   .chiffre-cle { background: __carte__; border: 1px solid __bord__; border-radius: 6px;
                  padding: .8rem 1rem; height: 100%; }
   .chiffre-cle .valeur { font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
@@ -189,6 +193,12 @@ def fin_de_saison(code, version, nb, graine):
     synthese = resume(table, points, rangs, CHAMPIONNATS[code])
     bas, haut = np.percentile(points, [10, 90], axis=0)
     fourchette = pd.DataFrame({"bas": bas, "haut_points": haut}, index=table.index)
+    # Pronostic d'avant-match de chaque match déjà joué : notes Elo du jour du match
+    proba_jouees = probabilites(modele_retenu(code, version), saison["force_dom"].to_numpy(),
+                                saison["force_ext"].to_numpy())
+    fourchette["prevus"] = points_attendus(saison, proba_jouees)
+    # Arrondi au dixième, + 0.0 pour éviter d'afficher « -0.0 »
+    fourchette["ecart"] = (table["points"] - fourchette["prevus"]).round(1) + 0.0
     return synthese.join(fourchette), rangs, list(table.index), len(restants)
 
 
@@ -421,21 +431,46 @@ with onglet_saison:
     st.subheader("Combien de points en fin de saison ?")
     st.markdown("Le point indique le total moyen de chaque club à la fin de la saison. Le trait couvre "
                 "8 saisons simulées sur 10 : plus il est long, plus l'avenir du club est incertain. "
-                "Le petit repère gris montre ses points aujourd'hui.")
+                "À gauche, le petit repère gris montre ses points aujourd'hui et le losange les points "
+                "que le modèle lui prévoyait à cette journée : un repère à droite du losange, c'est un "
+                "club qui a fait mieux que prévu.")
+    st.html(f"""<div class="legende-graphique">
+      <span><i style="width:3px;height:14px;background:{c['D']}"></i>Points aujourd'hui</span>
+      <span><i style="width:9px;height:9px;border:2px solid {c['encre2']};transform:rotate(45deg)"></i>
+        Points prévus à cette journée</span>
+      <span><i style="width:11px;height:11px;border-radius:50%;background:{c['H']}"></i>
+        Points en fin de saison (moyenne)</span>
+      <span><i style="width:22px;height:3px;background:{c['H']};opacity:.45"></i>8 saisons sur 10</span>
+    </div>""")
     projection = synthese.reset_index().rename(columns={"index": "club"})
     ordre = list(synthese.index)
     axe_y = alt.Y("club:N", sort=ordre, title=None, axis=alt.Axis(labelOverlap=False))
     infobulle = [alt.Tooltip("club:N", title="Club"), alt.Tooltip("points:Q", title="Points actuels"),
+                 alt.Tooltip("prevus:Q", format=".1f", title="Points prévus à cette journée"),
+                 alt.Tooltip("ecart:Q", format="+.1f", title="Écart au prévu"),
                  alt.Tooltip("points_finaux:Q", format=".0f", title="Points finaux (moyenne)"),
                  alt.Tooltip("bas:Q", format=".0f", title="Fourchette basse"),
                  alt.Tooltip("haut_points:Q", format=".0f", title="Fourchette haute")]
     fourchettes = alt.Chart(projection).mark_rule(strokeWidth=3, color=c["H"], opacity=.45).encode(
         y=axe_y, x=alt.X("bas:Q", title="Points"), x2="haut_points:Q", tooltip=infobulle)
+    ecarts = alt.Chart(projection).mark_rule(strokeWidth=1.5, color=c["encre2"], opacity=.6).encode(
+        y=axe_y, x="prevus:Q", x2="points:Q", tooltip=infobulle)
+    prevus = alt.Chart(projection).mark_point(shape="diamond", size=70, filled=True, color=c["carte"],
+                                              stroke=c["encre2"], strokeWidth=2, opacity=1).encode(
+        y=axe_y, x="prevus:Q", tooltip=infobulle)
     actuels = alt.Chart(projection).mark_tick(color=c["D"], thickness=2, size=14).encode(
         y=axe_y, x="points:Q", tooltip=infobulle)
     moyens = alt.Chart(projection).mark_circle(size=110, color=c["H"], opacity=1).encode(
         y=axe_y, x="points_finaux:Q", tooltip=infobulle)
-    st.altair_chart((fourchettes + actuels + moyens).properties(height=26 * nb_clubs), width="stretch")
+    st.altair_chart((fourchettes + ecarts + prevus + actuels + moyens).properties(height=26 * nb_clubs),
+                    width="stretch")
+    mieux, moins = synthese["ecart"].idxmax(), synthese["ecart"].idxmin()
+    st.caption(
+        f"Plus belle surprise : {mieux}, {decimal(synthese.loc[mieux, 'ecart'], 1, signe=True)} points "
+        f"par rapport au prévu. Plus grosse déception : {moins}, "
+        f"{decimal(synthese.loc[moins, 'ecart'], 1, signe=True)}. Le prévu additionne, match après match, "
+        "les points qu'on pouvait attendre la veille avec les notes Elo du moment "
+        "(3 × chances de victoire + 1 × chances de nul).")
 
     st.subheader("Les chances de chaque club")
     tableau = projection.copy()
@@ -446,13 +481,18 @@ with onglet_saison:
         titre, help=aide, format="%.0f\u00a0%%", min_value=0, max_value=100)
     place_barrage = nb_clubs - regles.relegues
     st.dataframe(
-        tableau[["club", "rang", "joues", "points", "diff_buts", "points_finaux"] + probas],
+        tableau[["club", "rang", "joues", "points", "prevus", "ecart", "diff_buts", "points_finaux"] + probas],
         hide_index=True, width="stretch", height=36 * (len(tableau) + 1) + 3,
         column_config={
             "club": st.column_config.TextColumn("Club", pinned=True),
             "rang": st.column_config.NumberColumn("Rang", help="Place au classement actuel"),
             "joues": st.column_config.NumberColumn("J", help="Matchs joués"),
             "points": st.column_config.NumberColumn("Pts", help="Points actuels"),
+            "prevus": st.column_config.NumberColumn("Prévus", format="%.1f",
+                                                    help="Points que le modèle prévoyait à cette journée"),
+            "ecart": st.column_config.NumberColumn("Écart", format="%+.1f",
+                                                   help="Points réels moins points prévus : positif = "
+                                                        "mieux que prévu"),
             "diff_buts": st.column_config.NumberColumn("Diff.", format="%+d", help="Différence de buts"),
             "points_finaux": st.column_config.NumberColumn("Pts attendus", format="%.0f",
                                                            help="Points moyens en fin de saison"),

@@ -7,7 +7,7 @@ import pytest
 from simulateur_foot.championnats import CHAMPIONNATS
 from simulateur_foot.force_clubs import NOTE_INITIALE, calculer_forces, score_attendu
 from simulateur_foot.modele import pertes_brier, pertes_log
-from simulateur_foot.simulation import classement, matchs_restants, resume, simuler
+from simulateur_foot.simulation import classement, matchs_restants, points_attendus, resume, simuler
 from simulateur_foot.variables import ajouter_variables, table_par_club
 
 
@@ -81,6 +81,19 @@ def test_simulation_respecte_les_probabilites():
     synthese = resume(table, points, rangs)
     assert synthese["titre"].sum() == pytest.approx(1)
     assert sorted(rangs[0]) == [1, 2, 3]
+
+
+def test_points_attendus():
+    saison = matchs_exemple().query("Saison == 2324")
+    # Match 1 : A sûr de gagner chez lui ; match 2 : nul certain ; match 3 : pile ou face
+    proba = pd.DataFrame({"A": [0.0, 0.0, 0.5], "D": [0.0, 1.0, 0.0], "H": [1.0, 0.0, 0.5]},
+                         index=saison.index)
+    attendus = points_attendus(saison, proba)
+    assert attendus["A"] == pytest.approx(3 + 1.5)
+    assert attendus["B"] == pytest.approx(0 + 1)
+    assert attendus["C"] == pytest.approx(1 + 1.5)
+    # Sur toute la saison, les points attendus égalent 3 par match moins 1 par nul attendu
+    assert attendus.sum() == pytest.approx(3 * len(saison) - proba["D"].sum())
 
 
 def test_zones_selon_le_championnat():
