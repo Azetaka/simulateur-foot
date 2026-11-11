@@ -7,7 +7,11 @@ import pytest
 from simulateur_foot.championnats import CHAMPIONNATS
 from simulateur_foot.force_clubs import NOTE_INITIALE, calculer_forces, score_attendu
 from simulateur_foot.modele import pertes_brier, pertes_log
-from simulateur_foot.simulation import classement, matchs_restants, resume, simuler
+from simulateur_foot.modele import creer_logistique
+from simulateur_foot import collecte_resultats
+from simulateur_foot.prediction import chances_bookmakers, probabilites, probabilites_tableau
+from simulateur_foot.simulation import (calendrier, classement, matchs_restants, points_attendus, resume,
+                                        simuler, simuler_notes_evolutives)
 from simulateur_foot.variables import ajouter_variables, table_par_club
 
 
@@ -83,6 +87,19 @@ def test_simulation_respecte_les_probabilites():
     assert sorted(rangs[0]) == [1, 2, 3]
 
 
+def test_points_attendus():
+    saison = matchs_exemple().query("Saison == 2324")
+    # Match 1 : A sûr de gagner chez lui ; match 2 : nul certain ; match 3 : pile ou face
+    proba = pd.DataFrame({"A": [0.0, 0.0, 0.5], "D": [0.0, 1.0, 0.0], "H": [1.0, 0.0, 0.5]},
+                         index=saison.index)
+    attendus = points_attendus(saison, proba)
+    assert attendus["A"] == pytest.approx(3 + 1.5)
+    assert attendus["B"] == pytest.approx(0 + 1)
+    assert attendus["C"] == pytest.approx(1 + 1.5)
+    # Sur toute la saison, les points attendus égalent 3 par match moins 1 par nul attendu
+    assert attendus.sum() == pytest.approx(3 * len(saison) - proba["D"].sum())
+
+
 def test_zones_selon_le_championnat():
     """Premier League : 3 relégués sans barrage ; Ligue 1 : 2 relégués et un barragiste."""
     clubs = [f"C{i}" for i in range(6)]
@@ -95,3 +112,80 @@ def test_zones_selon_le_championnat():
     france = resume(table, points, rangs, CHAMPIONNATS["F1"])
     assert france.loc["C3", "barrage"] == 1 and france["relegation"].sum() == 2
     assert france["haut"].sum() == 4
+
+
+def modele_jouet():
+    """Régression entraînée sur des notes tirées au hasard : le favori gagne plus souvent."""
+    generateur = np.random.default_rng(1)
+    dom, ext = generateur.normal(1500, 100, 3000), generateur.normal(1500, 100, 3000)
+    u = generateur.random(3000) + (dom - ext) / 400
+    resultats = np.where(u > 0.75, "H", np.where(u > 0.45, "D", "A"))
+    return creer_logistique().fit(pd.DataFrame({"force_dom": dom, "force_ext": ext}), resultats)
+
+
+def test_probabilites_tableau_identiques_a_scikit_learn():
+    modele = modele_jouet()
+    dom, ext = np.array([1400.0, 1500, 1650]), np.array([1600.0, 1500, 1450])
+    attendu = probabilites(modele, dom, ext).to_numpy()
+    assert probabilites_tableau(modele, dom, ext) == pytest.approx(attendu)
+    # Forme quelconque : (simulations × matchs)
+    assert probabilites_tableau(modele, np.tile(dom, (4, 1)), np.tile(ext, (4, 1))).shape == (4, 3, 3)
+
+
+def ligue_de_six():
+    """Six clubs, aucun match joué : 30 affiches restantes."""
+    clubs = [f"C{i}" for i in range(6)]
+    table = pd.DataFrame({"points": [0] * 6, "diff_buts": [0] * 6}, index=clubs)
+    restants = pd.DataFrame([(d, e) for d in clubs for e in clubs if d != e],
+                            columns=["HomeTeam", "AwayTeam"])
+    return table, restants
+
+
+def test_calendrier_un_match_par_club_et_par_journee():
+    _, restants = ligue_de_six()
+    journee = calendrier(restants, graine=3)
+    assert len(journee) == len(restants) == 30
+    for j in set(journee):
+        clubs = restants[journee == j][["HomeTeam", "AwayTeam"]].to_numpy().ravel()
+        assert len(clubs) == len(set(clubs))
+
+
+def test_notes_evolutives():
+    table, restants = ligue_de_six()
+    notes = {f"C{i}": 1500 for i in range(6)}
+    modele = modele_jouet()
+    figees, _ = simuler_notes_evolutives(table, restants, notes, modele, nb=4000, k=0)
+    mobiles, rangs = simuler_notes_evolutives(table, restants, notes, modele, nb=4000, k=60)
+    # Chaque match distribue 2 ou 3 points : total entre 60 et 90
+    assert ((mobiles.sum(axis=1) >= 60) & (mobiles.sum(axis=1) <= 90)).all()
+    assert sorted(rangs[0]) == [1, 2, 3, 4, 5, 6]
+    # Avec k = 0, rien ne bouge : mêmes points moyens qu'avec des probabilités fixes
+    proba = probabilites(modele, [1500] * 30, [1500] * 30)
+    fixes, _ = simuler(table, restants, proba, nb=4000)
+    assert figees.mean() == pytest.approx(fixes.mean(), rel=0.02)
+    # Les séries se prolongent : les totaux s'écartent davantage
+    assert mobiles.std(axis=1).mean() > figees.std(axis=1).mean()
+
+
+def test_chances_bookmakers_sans_marge():
+    # Cotes 2 / 3,5 / 4 : 1/cote fait 0,5 + 0,286 + 0,25 = 1,036, soit 3,6 % de marge
+    chances = chances_bookmakers([2.0], [3.5], [4.0]).iloc[0]
+    assert chances.sum() == pytest.approx(1)
+    assert list(chances.index) == ["A", "D", "H"]
+    assert chances["H"] == pytest.approx(0.5 / (0.5 + 1 / 3.5 + 0.25))
+    assert chances["H"] > chances["D"] > chances["A"]
+
+
+def test_prochains_matchs_sans_ceux_deja_joues(tmp_path, monkeypatch):
+    fichier = tmp_path / "prochains_matchs.csv"
+    pd.DataFrame({"Championnat": ["F1", "F1", "E0"], "Date": ["2026-11-21"] * 3, "Heure": ["21:00"] * 3,
+                  "HomeTeam": ["A", "C", "X"], "AwayTeam": ["B", "A", "Y"],
+                  "CoteH": [2.0] * 3, "CoteD": [3.4] * 3, "CoteA": [3.8] * 3}).to_csv(fichier, index=False)
+    monkeypatch.setattr(collecte_resultats, "FICHIER_PROCHAINS", fichier)
+    saison = matchs_exemple().query("Saison == 2324")  # A–B déjà joué, C–A aussi
+    assert collecte_resultats.charger_prochains_matchs("F1", saison).empty
+    a_venir = collecte_resultats.charger_prochains_matchs("F1", saison.iloc[:1])  # seul A–B est joué
+    assert a_venir[["HomeTeam", "AwayTeam"]].values.tolist() == [["C", "A"]]
+    # Pas de fichier : tableau vide, pas d'erreur
+    monkeypatch.setattr(collecte_resultats, "FICHIER_PROCHAINS", tmp_path / "absent.csv")
+    assert collecte_resultats.charger_prochains_matchs("F1", saison).empty
