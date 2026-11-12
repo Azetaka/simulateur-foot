@@ -221,7 +221,6 @@ __marimo__/
 data/*.duckdb
 # Données dérivées : recalculées par `simulateur-foot forces` / `variables`
 data/matchs_*.csv
-data/joueurs.csv
 
 # Réglages locaux de Claude Code
 .claude/settings.local.json

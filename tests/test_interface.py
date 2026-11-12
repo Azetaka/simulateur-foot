@@ -10,6 +10,7 @@ from simulateur_foot.championnats import CHAMPIONNATS
 def test_interface_sans_erreur(code):
     app = AppTest.from_file("../src/simulateur_foot/app.py", default_timeout=120)
     app.session_state["verification"] = None  # pas de mise à jour automatique pendant les tests
+    app.session_state["maj_joueurs"] = False
     app.query_params["championnat"] = code
     app.run()
     assert not app.exception
@@ -33,6 +34,7 @@ def test_prochaine_journee_avec_des_matchs_annonces(tmp_path, monkeypatch):
 
     app = AppTest.from_file("../src/simulateur_foot/app.py", default_timeout=120)
     app.session_state["verification"] = None
+    app.session_state["maj_joueurs"] = False
     app.query_params["championnat"] = "F1"
     app.run()
     assert not app.exception

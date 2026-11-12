@@ -1,0 +1,30 @@
+# Lance les tests à chaque pull request et à chaque push sur develop ou main :
+# une modification qui casse le simulateur ou l'interface est repérée avant la fusion.
+
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Installer le projet
+        run: uv sync --locked
+
+      - name: Lancer les tests
+        run: uv run pytest -q

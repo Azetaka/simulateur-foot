@@ -367,19 +367,29 @@ def fin_de_saison(code, version, nb, graine, evolutives=True, premiers=()):
 
 @st.cache_data
 def joueurs_projetes(code, version, version_joueurs):
-    """Meilleurs buteurs et passeurs du championnat, avec leur projection de fin de saison."""
-    matchs, _ = donnees(code, version)
+    """Meilleurs buteurs et passeurs du championnat, leur projection, et les clubs ESPN non reconnus."""
+    matchs, notes = donnees(code, version)
     saison = matchs[matchs["Saison"] == SAISON_EN_COURS]
-    return stats_joueurs.projeter(stats_joueurs.charger(), saison, code)
+    tous = stats_joueurs.charger()
+    calendrier = stats_joueurs.facteur_calendrier(saison, matchs_restants(saison), notes,
+                                                  modele_scores_retenu(code, version))
+    inconnus = stats_joueurs.clubs_non_reconnus(tous, set(saison["HomeTeam"]) | set(saison["AwayTeam"]), code)
+    return stats_joueurs.projeter(tous, saison, code, calendrier=calendrier), inconnus
 
 
 def donnees_joueurs():
-    """Date du fichier des joueurs, après l'avoir mis à jour s'il a plus de 12 h (None si absent)."""
-    if stats_joueurs.heures_depuis_telechargement() > SEUIL_HEURES:
-        try:
-            stats_joueurs.telecharger()
-        except Exception:  # pas de réseau, ESPN indisponible : on garde le fichier local s'il existe
-            pass
+    """Date du fichier des joueurs, après l'avoir mis à jour s'il a plus de 12 h (None si absent).
+
+    Comme pour les résultats, la mise à jour automatique n'a lieu qu'une fois par session ;
+    les tests la désactivent en fixant st.session_state.maj_joueurs à False.
+    """
+    if st.session_state.get("maj_joueurs", True):
+        st.session_state.maj_joueurs = False
+        if stats_joueurs.heures_depuis_telechargement() > SEUIL_HEURES:
+            try:
+                stats_joueurs.telecharger()
+            except Exception:  # pas de réseau, ESPN indisponible : on garde le fichier local s'il existe
+                pass
     return stats_joueurs.FICHIER_JOUEURS.stat().st_mtime if stats_joueurs.FICHIER_JOUEURS.exists() else None
 
 
@@ -948,17 +958,21 @@ with onglet_saison:
 
 with onglet_joueurs:
     explication("Les 50 meilleurs buteurs et les 50 meilleurs passeurs du championnat, avec leur total "
-                "prévu à la fin de saison. Le calcul suppose que chaque joueur garde son rythme : la même "
-                "part des matchs de son club, et les mêmes buts (ou passes) par match joué. On tire "
-                "ensuite des milliers de fins de saison au hasard. Le trait couvre 8 saisons simulées "
-                "sur 10 : très large tant que le joueur a peu joué, car un bon début de saison "
-                "n'annonce pas toujours la suite.", titre="Comment lire la prévision")
+                "prévu à la fin de saison. Le calcul suppose que chaque joueur garde la même part des "
+                "matchs de son club. Son rythme est ramené vers la moyenne, car un départ canon se "
+                "prolonge rarement tel quel, puis ajusté selon que les matchs restants de son club sont "
+                "plus faciles ou plus durs que ceux déjà joués. On tire ensuite des milliers de fins de "
+                "saison au hasard : le trait couvre 8 saisons simulées sur 10.",
+                titre="Comment lire la prévision")
     version_joueurs = donnees_joueurs()
     if version_joueurs is None:
         st.warning("Les statistiques des joueurs n'ont pas pu être téléchargées (pas de réseau ?). "
                    "Réessayez avec `uv run simulateur-foot joueurs`.")
     else:
-        tous = joueurs_projetes(code, version, version_joueurs)
+        tous, clubs_inconnus = joueurs_projetes(code, version, version_joueurs)
+        if clubs_inconnus:
+            st.warning("Clubs non reconnus dans les données ESPN, leurs joueurs manquent : "
+                       f"{', '.join(clubs_inconnus)}. À ajouter dans CLUBS_ESPN (joueurs.py).")
         j1, j2 = st.columns([2, 1], vertical_alignment="bottom")
         choix = j1.segmented_control("Classement", ["Buteurs", "Passeurs"], default="Buteurs",
                                      label_visibility="collapsed") or "Buteurs"
@@ -978,6 +992,9 @@ with onglet_joueurs:
             actuel, prevu = int(getattr(j, stat)), round(getattr(j, f"{stat}_prevus"))
             bas, haut = round(getattr(j, f"{stat}_bas")), round(getattr(j, f"{stat}_haut"))
             rythme = f"{actuel / j.matchs:.2f}".replace(".", ",")
+            retenu = f"{getattr(j, f'{stat}_rythme'):.2f}".replace(".", ",")
+            calendrier = ("plus facile" if j.facteur_calendrier > 1.03 else
+                          "plus dur" if j.facteur_calendrier < 0.97 else "équivalent")
             largeur = f"{(getattr(j, f'{stat}_haut') - getattr(j, f'{stat}_bas')) / maxi * 100:.2f}"
             logo = ecusson(chemin_club(code, j.club), alt=j.club)
             nom, club = html.escape(j.joueur), html.escape(j.club)
@@ -996,7 +1013,9 @@ with onglet_joueurs:
     <dl>
       <dt>Aujourd'hui</dt><dd>{actuel} {unite}</dd>
       <dt>Matchs joués</dt><dd>{int(j.matchs)}</dd>
-      <dt>Rythme</dt><dd>{rythme} {singulier} / match</dd>
+      <dt>Rythme actuel</dt><dd>{rythme} {singulier} / match</dd>
+      <dt>Rythme retenu</dt><dd>{retenu} / match</dd>
+      <dt>Matchs restants</dt><dd>{calendrier}</dd>
       <dt>Fin de saison</dt><dd class="fort">≈ {prevu} {unite}</dd>
       <dt>Fourchette</dt><dd>{bas} à {haut}</dd>
     </dl>

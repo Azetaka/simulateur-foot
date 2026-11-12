@@ -1,0 +1,485 @@
+Championnat,id,joueur,club_espn,matchs,buts,passes
+F1,271137,Lassine Sinayoko,Paris FC,10.0,9.0,5.0
+F1,259743,Amine Gouiri,Marseille,10.0,7.0,3.0
+F1,323850,Esteban Lepaul,Stade Rennais,7.0,7.0,0.0
+F1,311118,Elye Wahi,Nice,9.0,6.0,2.0
+F1,293347,Cameron Archer,AJ Auxerre,8.0,6.0,0.0
+F1,192015,Ludovic Ajorque,Brest,10.0,5.0,1.0
+F1,156898,Florian Thauvin,Lens,10.0,5.0,7.0
+F1,306664,Casper Tengstedt,Toulouse,8.0,5.0,1.0
+F1,282381,Boulaye Dia,Stade Rennais,8.0,5.0,0.0
+F1,379012,Gessime Yassine,Strasbourg,10.0,4.0,3.0
+F1,268720,Louis Mafouta,Le Mans,10.0,4.0,1.0
+F1,330412,Kamory Doumbia,Brest,10.0,4.0,2.0
+F1,265869,Ferran Torres,Paris Saint-Germain,10.0,4.0,1.0
+F1,243514,Josh Maja,Le Havre AC,10.0,4.0,0.0
+F1,333310,Ernest Nuamah,Lyon,8.0,4.0,1.0
+F1,365789,Paris Brunner,AS Monaco,8.0,4.0,0.0
+F1,243844,Sebastian Szymanski,Stade Rennais,8.0,4.0,1.0
+F1,362777,Thomas Jørgensen,Toulouse,10.0,3.0,1.0
+F1,232089,Jonathan Clauss,Nice,10.0,3.0,1.0
+F1,238917,Amine Harit,Marseille,10.0,3.0,1.0
+F1,243748,Danny Namaso,AJ Auxerre,10.0,3.0,2.0
+F1,277525,Himad Abdelli,Marseille,10.0,3.0,0.0
+F1,290230,Giovanni Reyna,Strasbourg,10.0,3.0,0.0
+F1,88965,Olivier Giroud,Lille,9.0,3.0,2.0
+F1,240233,Achraf Hakimi,Paris Saint-Germain,8.0,3.0,2.0
+F1,159047,Marquinhos,Paris Saint-Germain,5.0,3.0,0.0
+F1,418536,Adil Bourabaa,Le Mans,5.0,3.0,2.0
+F1,370758,Zachary Athekame,Lyon,10.0,2.0,3.0
+F1,225557,Jean-Victor Makengo,Lorient,10.0,2.0,1.0
+F1,223122,Maxime López,Paris FC,10.0,2.0,2.0
+F1,334359,Pablo Pagis,Paris FC,10.0,2.0,2.0
+F1,192060,Corentin Tolisso,Lyon,10.0,2.0,3.0
+F1,231366,Mbwana Samatta,Le Havre AC,10.0,2.0,0.0
+F1,365783,Pathé Mboup,Brest,10.0,2.0,1.0
+F1,173266,Adrien Thomasson,Stade Rennais,10.0,2.0,2.0
+F1,297121,Jacen Russell-Rowe,Toulouse,10.0,2.0,0.0
+F1,403232,Prosper Peter,Angers,10.0,2.0,0.0
+F1,276995,Sofiane Diop,Nice,10.0,2.0,3.0
+F1,233199,Matthieu Udol,Lens,9.0,2.0,0.0
+F1,289114,Igor Paixão,Marseille,9.0,2.0,1.0
+F1,355971,Ethan Mbappé,Lille,9.0,2.0,0.0
+F1,259960,Mama Baldé,Brest,9.0,2.0,1.0
+F1,353363,Mika Godts,Paris Saint-Germain,9.0,2.0,2.0
+F1,384005,Keyliane Abdallah,Marseille,9.0,2.0,0.0
+F1,315384,Mohamed Amoura,Nice,8.0,2.0,2.0
+F1,301262,Amine El Ouazzani,Angers,8.0,2.0,2.0
+F1,316560,Dário Essugo,Strasbourg,8.0,2.0,1.0
+F1,362794,Conrad Harder,Strasbourg,8.0,2.0,1.0
+F1,401045,Rayan Fofana,Le Havre AC,8.0,2.0,1.0
+F1,297157,Dilane Bakwa,Lille,8.0,2.0,1.0
+F1,271244,Cristian Cásseres Jr.,Toulouse,10.0,0.0,6.0
+F1,195501,Aleksandr Golovin,AS Monaco,10.0,0.0,3.0
+F1,268591,Romain Faivre,AJ Auxerre,10.0,1.0,3.0
+F1,239905,Gauthier Hein,Nice,10.0,0.0,3.0
+F1,159051,Emerson,Marseille,9.0,0.0,3.0
+F1,303787,Sebastian Nanasi,Strasbourg,7.0,0.0,3.0
+F1,305545,Pavel Sulc,Lyon,7.0,1.0,3.0
+F1,364754,Panos Katseris,Lorient,5.0,0.0,3.0
+F1,381626,Arsène Kouassi,Lorient,10.0,0.0,2.0
+F1,291850,Joris Chotard,Brest,10.0,0.0,2.0
+F1,331636,Lucas Calodat,Le Mans,10.0,1.0,2.0
+F1,372260,Mahamadou Nagida,Stade Rennais,10.0,0.0,2.0
+F1,266027,Timothy Weah,Marseille,9.0,1.0,2.0
+F1,250377,Hugo Magnetti,Brest,9.0,0.0,2.0
+F1,330722,Lucas Bretelle,Le Mans,9.0,0.0,2.0
+F1,190806,Przemyslaw Frankowski,Stade Rennais,9.0,1.0,2.0
+F1,377782,Oso,Strasbourg,8.0,0.0,2.0
+F1,214596,Fabián Ruiz,Paris Saint-Germain,8.0,0.0,2.0
+F1,250758,Bryan Reynolds,Stade Rennais,7.0,0.0,2.0
+F1,304011,Maurits Kjaergaard,Lille,6.0,0.0,2.0
+F1,229744,Ousmane Dembélé,Paris Saint-Germain,5.0,1.0,2.0
+F1,240660,Jordan Teze,AS Monaco,5.0,0.0,2.0
+F1,400352,Soriba Diaoune,Lille,4.0,1.0,2.0
+F1,379088,Senny Mayulu,Paris Saint-Germain,4.0,2.0,2.0
+F1,307713,Charlie Cresswell,Stade Rennais,10.0,0.0,1.0
+F1,38721,Lamine Camara,AS Monaco,10.0,0.0,1.0
+F1,196234,Branco van den Boomen,Angers,10.0,1.0,1.0
+F1,314388,Amine Sbaï,Angers,10.0,1.0,1.0
+F1,316559,Názinho,AS Monaco,10.0,1.0,1.0
+E0,253989,Erling Haaland,Manchester City,10.0,9.0,0.0
+E0,235662,Alexander Isak,Liverpool,9.0,7.0,0.0
+E0,301166,Thierno Barry,Everton,10.0,6.0,1.0
+E0,308524,Nicolas Jackson,Aston Villa,9.0,6.0,1.0
+E0,265653,Morgan Rogers,Chelsea,10.0,5.0,1.0
+E0,243364,Marcus Tavernier,AFC Bournemouth,10.0,5.0,0.0
+E0,102368,Evanilson,AFC Bournemouth,10.0,5.0,4.0
+E0,298008,Rayan Cherki,Manchester City,9.0,5.0,2.0
+E0,284960,João Pedro,Chelsea,6.0,5.0,3.0
+E0,271170,Bryan Mbeumo,Manchester United,10.0,4.0,0.0
+E0,132659,Pascal Gross,Brighton & Hove Albion,10.0,4.0,4.0
+E0,124091,Bruno Fernandes,Manchester United,9.0,4.0,2.0
+E0,252389,Kiernan Dewsbury-Hall,Everton,10.0,3.0,1.0
+E0,296395,Cole Palmer,Chelsea,10.0,3.0,3.0
+E0,288340,Enzo Le Fée,Sunderland,10.0,3.0,1.0
+E0,197717,Dominic Calvert-Lewin,Leeds United,10.0,3.0,1.0
+E0,203669,Martin Ødegaard,Arsenal,10.0,3.0,0.0
+E0,310958,Kevin Schade,Brentford,10.0,3.0,0.0
+E0,256115,Pedro Neto,Chelsea,10.0,3.0,1.0
+E0,286967,Jack Rudoni,Coventry City,10.0,3.0,0.0
+E0,231182,Kai Havertz,Arsenal,10.0,3.0,0.0
+E0,387655,Charalambos Kostoulas,Brighton & Hove Albion,10.0,3.0,2.0
+E0,304242,Yasin Ayari,Brighton & Hove Albion,9.0,3.0,0.0
+E0,320417,Mohamed Belloumi,Hull City,9.0,3.0,2.0
+E0,307114,Liam Delap,Nottingham Forest,9.0,3.0,0.0
+E0,282229,Brian Brobbey,Sunderland,8.0,3.0,0.0
+E0,280555,Bukayo Saka,Arsenal,7.0,3.0,0.0
+E0,328011,Jack Hinshelwood,Brighton & Hove Albion,5.0,3.0,0.0
+E0,283086,Leif Davis,Ipswich Town,10.0,2.0,1.0
+E0,282583,Jan Paul van Hecke,Tottenham Hotspur,10.0,2.0,0.0
+E0,193010,Oliver McBurnie,Hull City,10.0,2.0,2.0
+E0,243386,Harvey Barnes,Newcastle United,10.0,2.0,2.0
+E0,192278,Diego Gómez,Brighton & Hove Albion,10.0,2.0,2.0
+E0,300853,Tyrick Mitchell,Crystal Palace,10.0,2.0,0.0
+E0,20975,Julio Enciso,Ipswich Town,10.0,2.0,2.0
+E0,301327,Maxim De Cuyper,Brighton & Hove Albion,10.0,2.0,3.0
+E0,301894,Igor Thiago,Brentford,10.0,2.0,2.0
+E0,243408,Jayden Bogle,Leeds United,10.0,2.0,0.0
+E0,409541,Josh King,Fulham,10.0,2.0,1.0
+E0,162843,John McGinn,Aston Villa,10.0,2.0,4.0
+E0,284490,Keane Lewis-Potter,Brentford,10.0,2.0,1.0
+E0,322654,Emersonn,Ipswich Town,10.0,2.0,1.0
+E0,275842,Dan Ndoye,Nottingham Forest,10.0,2.0,0.0
+E0,259517,Joe Willock,Newcastle United,10.0,2.0,0.0
+E0,359097,Malick Yalcouyé,Brighton & Hove Albion,10.0,2.0,0.0
+E0,225564,Vitaly Janelt,Brentford,9.0,2.0,0.0
+E0,270641,Noah Okafor,Leeds United,9.0,2.0,0.0
+E0,397545,Víctor Muñoz,Liverpool,9.0,2.0,0.0
+E0,382839,Alysson,Aston Villa,9.0,2.0,0.0
+E0,269343,Jack Clarke,Ipswich Town,9.0,2.0,1.0
+E0,238262,Declan Rice,Arsenal,10.0,0.0,5.0
+E0,219362,Daichi Kamada,Crystal Palace,10.0,1.0,3.0
+E0,303748,Florian Wirtz,Liverpool,10.0,1.0,3.0
+E0,299910,Josko Gvardiol,Manchester City,10.0,1.0,3.0
+E0,243396,Morgan Gibbs-White,Nottingham Forest,9.0,1.0,3.0
+E0,266599,Mohammed Kudus,Tottenham Hotspur,9.0,0.0,3.0
+E0,249524,Cody Gakpo,Liverpool,8.0,1.0,3.0
+E0,328238,Bradley Barcola,Liverpool,8.0,0.0,3.0
+E0,273292,Antoine Semenyo,Manchester City,7.0,2.0,3.0
+E0,241077,Ben White,Arsenal,7.0,0.0,3.0
+E0,386992,Johan Manzambi,Aston Villa,7.0,2.0,3.0
+E0,318390,Tarik Muharemovic,Leeds United,10.0,0.0,2.0
+E0,298329,Riccardo Calafiori,Arsenal,10.0,1.0,2.0
+E0,259902,Matheus Cunha,Manchester United,10.0,1.0,2.0
+E0,336794,Abdoul Ouattara,Ipswich Town,10.0,1.0,2.0
+E0,240495,Brandon Thomas-Asante,Coventry City,10.0,0.0,2.0
+E0,104943,Andy Robertson,Tottenham Hotspur,9.0,0.0,2.0
+E0,307657,Jaidon Anthony,Brentford,9.0,1.0,2.0
+E0,308979,Amar Dedic,Newcastle United,8.0,0.0,2.0
+E0,268641,Iliman Ndiaye,Manchester City,8.0,0.0,2.0
+E0,245916,Justin Kluivert,AFC Bournemouth,8.0,1.0,2.0
+E0,250787,Phil Foden,Manchester City,8.0,1.0,2.0
+E0,278061,Georginio Rutter,Brighton & Hove Albion,7.0,0.0,2.0
+E0,353951,Jorrel Hato,Chelsea,6.0,0.0,2.0
+E0,366781,Patrick Dorgu,Manchester United,6.0,1.0,2.0
+E0,307069,Carl Rushworth,Coventry City,10.0,0.0,1.0
+E0,155226,James Tarkowski,Everton,10.0,1.0,1.0
+E0,106139,Lewis Hall,Newcastle United,10.0,1.0,1.0
+E0,338894,Murillo,Nottingham Forest,10.0,0.0,1.0
+E0,206172,Jay Da Silva,Coventry City,10.0,1.0,1.0
+E0,305684,Adrien Truffert,AFC Bournemouth,10.0,0.0,1.0
+E0,333419,Adam Wharton,Crystal Palace,10.0,0.0,1.0
+SP1,231050,Raphinha,Barcelona,11.0,15.0,3.0
+SP1,231388,Kylian Mbappé,Real Madrid,12.0,13.0,2.0
+SP1,362150,Lamine Yamal,Barcelona,12.0,10.0,8.0
+SP1,390389,Yassir Zabiri,Racing Santander,12.0,9.0,0.0
+SP1,207288,Ante Budimir,Osasuna,12.0,8.0,0.0
+SP1,276652,Sergio Camello,Rayo Vallecano,12.0,7.0,2.0
+SP1,354334,Fermín López,Barcelona,11.0,7.0,5.0
+SP1,318773,Roberto Fernández,Espanyol,12.0,6.0,0.0
+SP1,301684,Fer Niño,Elche,12.0,6.0,0.0
+SP1,297373,Álex Baena,Atlético Madrid,12.0,5.0,3.0
+SP1,267591,Roger Brugué,Levante,11.0,5.0,1.0
+SP1,207236,Lucas Boyé,Alavés,11.0,5.0,0.0
+SP1,122260,Pierre-Emerick Aubameyang,Deportivo,9.0,5.0,2.0
+SP1,373542,Adrián Niño,Málaga,8.0,5.0,1.0
+SP1,291281,Jude Bellingham,Real Madrid,12.0,4.0,3.0
+SP1,323838,Giuliano Simeone,Atlético Madrid,12.0,4.0,2.0
+SP1,209579,Álex Berenguer,Athletic Club,12.0,4.0,4.0
+SP1,198832,Mariano Díaz,Alavés,12.0,4.0,4.0
+SP1,166396,Alejandro Grimaldo,Atlético Madrid,11.0,4.0,2.0
+SP1,306263,Luka Sucic,Real Sociedad,11.0,4.0,0.0
+SP1,341367,Orri Óskarsson,Real Sociedad,10.0,4.0,0.0
+SP1,284854,Martín Satriano,Getafe,12.0,3.0,2.0
+SP1,311054,Iván Romero,Levante,12.0,3.0,0.0
+SP1,214412,Iñaki Williams,Athletic Club,12.0,3.0,2.0
+SP1,310452,Arda Güler,Real Madrid,12.0,3.0,4.0
+SP1,402479,Yan Diomande,Real Madrid,12.0,3.0,2.0
+SP1,300002,Georges Mikautadze,Villarreal,12.0,3.0,1.0
+SP1,255889,Pape Gueye,Villarreal,11.0,3.0,0.0
+SP1,125200,Álvaro García,Rayo Vallecano,11.0,3.0,2.0
+SP1,70224,Rodrigo Riquelme,Real Betis,11.0,3.0,0.0
+SP1,365821,Isaac Romero,Sevilla,10.0,3.0,1.0
+SP1,300912,Abde Ezzalzouli,Real Betis,9.0,3.0,0.0
+SP1,145078,Marc Bartra,Real Betis,8.0,3.0,0.0
+SP1,273499,Jonathan David,Atlético Madrid,7.0,3.0,2.0
+SP1,217289,Gabriel Jesus,Barcelona,7.0,3.0,1.0
+SP1,297358,Germán Valera,Elche,12.0,2.0,0.0
+SP1,297353,Mario Soriano Carreno,Deportivo,12.0,2.0,2.0
+SP1,414299,Bil Nsongo,Deportivo,12.0,2.0,0.0
+SP1,274197,Lee Kang-In,Atlético Madrid,12.0,2.0,1.0
+SP1,307390,Alberto Moleiro,Villarreal,12.0,2.0,4.0
+SP1,274913,Karim Adeyemi,Barcelona,12.0,2.0,2.0
+SP1,218122,Enes Ünal,Getafe,11.0,2.0,1.0
+SP1,324098,Carlos Dotor,Málaga,11.0,2.0,0.0
+SP1,229018,Mikel Oyarzabal,Real Sociedad,11.0,2.0,2.0
+SP1,276841,Adrián de la Fuente,Levante,11.0,2.0,0.0
+SP1,268782,Anthony Gordon,Barcelona,11.0,2.0,4.0
+SP1,279904,Ferran Jutglà,Celta Vigo,11.0,2.0,0.0
+SP1,283941,Ander Barrenetxea,Real Sociedad,11.0,2.0,2.0
+SP1,143564,Isco,Real Betis,11.0,2.0,1.0
+SP1,213141,Gonçalo Guedes,Real Sociedad,11.0,2.0,1.0
+SP1,367946,Javi Hernandez,Espanyol,12.0,0.0,6.0
+SP1,284699,Iñigo Vicente,Racing Santander,12.0,0.0,3.0
+SP1,203711,Unai López,Rayo Vallecano,12.0,1.0,3.0
+SP1,192133,Ayoze Pérez,Villarreal,12.0,1.0,3.0
+SP1,259916,José Antonio Morente,Elche,12.0,0.0,3.0
+SP1,235072,Carlos Soler,Real Sociedad,11.0,1.0,3.0
+SP1,374621,Ángel Pérez,Alavés,11.0,0.0,3.0
+SP1,277307,Youssouf Fofana,Sevilla,9.0,1.0,3.0
+SP1,227765,Dani Olmo,Barcelona,9.0,1.0,3.0
+SP1,406379,Job Ochieng,Real Sociedad,9.0,1.0,3.0
+SP1,252107,Vinícius Júnior,Real Madrid,8.0,1.0,3.0
+SP1,16340,Javi Guerra,Valencia,12.0,0.0,2.0
+SP1,257786,Dávid Hancko,Atlético Madrid,12.0,0.0,2.0
+SP1,250465,Pedri,Barcelona,12.0,1.0,2.0
+SP1,324166,Luismi Cruz,Deportivo,12.0,1.0,2.0
+SP1,322993,Robbie Ure,Sevilla,12.0,1.0,2.0
+SP1,320648,Lucas Cepeda,Elche,12.0,0.0,2.0
+SP1,235818,Federico Valverde,Real Madrid,11.0,1.0,2.0
+SP1,260740,Jorge de Frutos,Rayo Vallecano,10.0,2.0,2.0
+SP1,188391,Hugo Álvarez,Celta Vigo,10.0,0.0,2.0
+SP1,376423,Marc Bernal,Barcelona,10.0,0.0,2.0
+SP1,368992,Pau Cubarsí,Barcelona,9.0,0.0,2.0
+SP1,323286,Roy Revivo,Elche,9.0,0.0,2.0
+SP1,169089,Moi Gómez,Osasuna,9.0,0.0,2.0
+SP1,336809,Cucho Hernández,Real Betis,9.0,2.0,2.0
+SP1,331047,Ilias Akhomach,Villarreal,9.0,0.0,2.0
+SP1,403582,Xavi Espart,Barcelona,8.0,1.0,2.0
+D1,170257,Niclas Füllkrug,Werder Bremen,9.0,9.0,0.0
+D1,212330,Patrik Schick,Bayer Leverkusen,9.0,8.0,2.0
+D1,286831,Michael Olise,Bayern Munich,9.0,6.0,3.0
+D1,234376,Phillip Tietz,Mainz,9.0,6.0,0.0
+D1,359793,Younes Ebnoutalib,Eintracht Frankfurt,9.0,6.0,1.0
+D1,274887,Jonathan Burkardt,Eintracht Frankfurt,9.0,5.0,1.0
+D1,269136,Ermedin Demirovic,VfB Stuttgart,9.0,5.0,0.0
+D1,303031,Yuito Suzuki,SC Freiburg,8.0,5.0,0.0
+D1,146804,Michael Gregoritsch,FC Augsburg,8.0,5.0,0.0
+D1,222176,Christopher Nkunku,RB Leipzig,7.0,5.0,2.0
+D1,324766,Rômulo,RB Leipzig,7.0,5.0,0.0
+D1,142200,Harry Kane,Bayern Munich,9.0,4.0,8.0
+D1,281122,Felix Nmecha,Borussia Dortmund,9.0,4.0,0.0
+D1,319368,Antonio Nusa,RB Leipzig,9.0,4.0,7.0
+D1,310883,Igor Matanovic,SC Freiburg,9.0,4.0,1.0
+D1,358496,Maurice Krattenmacher,SV Elversberg,9.0,4.0,1.0
+D1,257390,Luis Díaz,Bayern Munich,6.0,4.0,1.0
+D1,214203,Maximilian Eggestein,SC Freiburg,9.0,3.0,0.0
+D1,361212,Ibrahim Maza,Bayer Leverkusen,9.0,3.0,3.0
+D1,222793,Dayot Upamecano,Bayern Munich,9.0,3.0,0.0
+D1,272135,Joe Scally,Borussia Mönchengladbach,9.0,3.0,2.0
+D1,241297,Anthony Caci,Mainz,9.0,3.0,3.0
+D1,306928,Robin Fellhauer,FC Augsburg,9.0,3.0,0.0
+D1,366911,Tidiam Gomis,RB Leipzig,9.0,3.0,2.0
+D1,186381,Serhou Guirassy,Borussia Dortmund,8.0,3.0,2.0
+D1,380795,Said El Mala,FC Cologne,8.0,3.0,0.0
+D1,291629,Fábio Silva,Borussia Dortmund,8.0,3.0,2.0
+D1,243626,Miro Muheim,Hamburg SV,5.0,3.0,1.0
+D1,308908,Fabian Rieder,FC Augsburg,9.0,2.0,5.0
+D1,310692,Lukas Petkov,SV Elversberg,9.0,2.0,2.0
+D1,340739,Felix Keidel,SV Elversberg,9.0,2.0,1.0
+D1,305853,Marco Grüll,Werder Bremen,9.0,2.0,6.0
+D1,261363,Ludovit Reis,Werder Bremen,9.0,2.0,0.0
+D1,330233,Ezechiel Banzuzi,RB Leipzig,9.0,2.0,2.0
+D1,195027,Sheraldo Becker,Mainz,9.0,2.0,4.0
+D1,346619,Derry Scherhant,SC Freiburg,9.0,2.0,3.0
+D1,398004,David Mokwa,SV Elversberg,9.0,2.0,1.0
+D1,338854,Adam Daghim,TSG Hoffenheim,9.0,2.0,2.0
+D1,332543,Stefano Marino,SC Paderborn 07,9.0,2.0,0.0
+D1,290639,Maximilian Beier,Borussia Dortmund,9.0,2.0,2.0
+D1,312112,Eren Dinkci,Werder Bremen,9.0,2.0,1.0
+D1,408539,Wael Mohya,Borussia Mönchengladbach,9.0,2.0,1.0
+D1,170604,Janik Haberer,1. FC Union Berlin,9.0,2.0,0.0
+D1,292169,Adam Hlozek,TSG Hoffenheim,9.0,2.0,1.0
+D1,336595,Bilal El Khannouss,VfB Stuttgart,9.0,2.0,0.0
+D1,220796,Tim Skarke,1. FC Union Berlin,9.0,2.0,1.0
+D1,289769,Terem Moffi,Hamburg SV,9.0,2.0,0.0
+D1,231764,Steffen Tigges,SC Paderborn 07,9.0,2.0,1.0
+D1,332689,Rodrigo Ribeiro,FC Augsburg,9.0,2.0,0.0
+D1,337079,Yannick Engelhardt,SC Freiburg,8.0,2.0,1.0
+D1,290044,Miguel Gutiérrez,Bayer Leverkusen,9.0,1.0,4.0
+D1,297750,Albert Grønbaek,Hamburg SV,8.0,1.0,4.0
+D1,357683,Brajan Gruda,RB Leipzig,7.0,0.0,4.0
+D1,170209,Matthias Ginter,SC Freiburg,9.0,0.0,3.0
+D1,190161,Joshua Kimmich,Bayern Munich,8.0,1.0,3.0
+D1,399214,Hennes Behrens,FC Augsburg,9.0,0.0,2.0
+D1,367558,Jordy Makengo,SC Freiburg,9.0,0.0,2.0
+D1,219294,Aleix García,Bayer Leverkusen,9.0,1.0,2.0
+D1,357030,Kaishu Sano,Mainz,9.0,0.0,2.0
+D1,371689,Chuki,Werder Bremen,9.0,0.0,2.0
+D1,324820,Jobe Bellingham,Borussia Dortmund,9.0,0.0,2.0
+D1,231173,Linton Maina,FC Cologne,9.0,1.0,2.0
+D1,120829,Nathaniel Brown,Bayern Munich,9.0,1.0,2.0
+D1,191209,Vladimír Coufal,TSG Hoffenheim,8.0,0.0,2.0
+D1,346617,Lukas Ullrich,Borussia Mönchengladbach,8.0,0.0,2.0
+D1,236721,Alphonso Davies,Bayern Munich,8.0,0.0,2.0
+D1,304572,Ismael Saibari,Bayern Munich,8.0,2.0,2.0
+D1,324660,Tom Bischof,Bayern Munich,8.0,0.0,2.0
+D1,179571,Vincenzo Grifo,SC Freiburg,8.0,0.0,2.0
+D1,290232,Angelo Stiller,VfB Stuttgart,7.0,0.0,2.0
+D1,336355,Bambasé Conté,TSG Hoffenheim,7.0,2.0,2.0
+D1,331057,Fisnik Asllani,TSG Hoffenheim,7.0,1.0,2.0
+D1,357801,Konstantinos Karetsas,Borussia Dortmund,7.0,0.0,2.0
+D1,209595,Ellyes Skhiri,FC Cologne,5.0,0.0,2.0
+D1,196029,Franck Honorat,Borussia Mönchengladbach,5.0,0.0,2.0
+D1,222567,Josip Juranovic,1. FC Union Berlin,3.0,0.0,2.0
+D1,282646,Karl Hein,Werder Bremen,9.0,0.0,1.0
+D1,257287,Edmond Tapsoba,Bayer Leverkusen,9.0,0.0,1.0
+D1,220714,Waldemar Anton,Borussia Dortmund,9.0,0.0,1.0
+D1,364593,Laurin Curda,SC Paderborn 07,9.0,0.0,1.0
+I1,384482,Gustavo Varela,Monza,10.0,9.0,1.0
+I1,319265,Antonio Raimondo,Frosinone,10.0,8.0,0.0
+I1,259481,Donyell Malen,AS Roma,10.0,8.0,2.0
+I1,258158,Nikola Krstovic,Atalanta,11.0,7.0,2.0
+I1,217331,Marcus Thuram,Internazionale,10.0,6.0,2.0
+I1,236038,Giacomo Calo,Frosinone,11.0,5.0,1.0
+I1,262071,Tasos Douvikas,Como,11.0,5.0,0.0
+I1,290545,Daniel Maldini,Cagliari,11.0,5.0,0.0
+I1,176203,Adrien Rabiot,AC Milan,9.0,5.0,4.0
+I1,359754,Alphadjo Cissè,AC Milan,9.0,5.0,0.0
+I1,376473,Franco Mastantuono,Fiorentina,11.0,4.0,0.0
+I1,250850,Davide Frattesi,Lazio,11.0,4.0,0.0
+I1,312757,Mateo Pellegrino,Fiorentina,11.0,4.0,0.0
+I1,291550,Gustav Isaksen,Lazio,11.0,4.0,1.0
+I1,134947,Kevin De Bruyne,Napoli,11.0,4.0,1.0
+I1,275444,Milutin Osmajic,Genoa,10.0,4.0,1.0
+I1,323113,Tijjani Noslin,Lazio,10.0,4.0,4.0
+I1,213725,Ché Adams,Torino,9.0,4.0,0.0
+I1,387204,Rodrigo Mora,AS Roma,9.0,4.0,0.0
+I1,225607,Christian Pulisic,AC Milan,8.0,4.0,1.0
+I1,340678,Diego Moreira,AC Milan,7.0,4.0,3.0
+I1,219713,Lautaro Martínez,Internazionale,5.0,4.0,0.0
+I1,258307,Bremer,Juventus,11.0,3.0,0.0
+I1,270817,Jurgen Ekkelenkamp,Udinese,11.0,3.0,1.0
+I1,360714,Giorgi Kvernadze,Frosinone,11.0,3.0,4.0
+I1,180956,Federico Bernardeschi,Bologna,11.0,3.0,0.0
+I1,323974,Matìas Soulè,AS Roma,11.0,3.0,3.0
+I1,362674,Pio Esposito,Internazionale,11.0,3.0,1.0
+I1,413818,Simone Lontani,Parma,11.0,3.0,0.0
+I1,337970,Nico Paz,Como,10.0,3.0,3.0
+I1,309273,Rasmus Højlund,Napoli,10.0,3.0,0.0
+I1,311475,Martin Baturina,Como,10.0,3.0,1.0
+I1,360235,Niccolò Pisilli,AS Roma,10.0,3.0,0.0
+I1,367743,Alieu Njie,Fiorentina,9.0,3.0,2.0
+I1,170785,Hakan Çalhanoglu,Internazionale,9.0,3.0,0.0
+I1,344917,Vasilije Adzic,Sassuolo,9.0,3.0,1.0
+I1,355997,Samuel Mbangula,Bologna,6.0,3.0,0.0
+I1,288896,Gonçalo Ramos,AC Milan,11.0,2.0,2.0
+I1,346916,Antoine Hainaut,Venezia,11.0,2.0,2.0
+I1,288472,Akor Adams,Venezia,11.0,2.0,0.0
+I1,380318,Jacobo Ramón,Como,11.0,2.0,0.0
+I1,278210,Éderson,Atalanta,11.0,2.0,0.0
+I1,324256,Mikael Ellertsson,Genoa,11.0,2.0,1.0
+I1,272719,Armand Laurienté,Sassuolo,11.0,2.0,1.0
+I1,282228,Kenneth Taylor,Lazio,11.0,2.0,1.0
+I1,193919,Hassane Kamara,Udinese,11.0,2.0,2.0
+I1,238296,Romano Schmid,Frosinone,11.0,2.0,4.0
+I1,189974,Giovanni Simeone,Torino,11.0,2.0,1.0
+I1,261054,Junior Messias,Genoa,11.0,2.0,1.0
+I1,188306,Matteo Politano,Napoli,11.0,2.0,3.0
+I1,204669,Mattia Zaccagni,Lazio,10.0,2.0,5.0
+I1,261616,Juan Miranda,Bologna,10.0,0.0,5.0
+I1,319167,Andy Diouf,Internazionale,10.0,0.0,4.0
+I1,356536,Farès Ghedjemis,Frosinone,9.0,1.0,4.0
+I1,164839,Paulo Dybala,AS Roma,6.0,0.0,4.0
+I1,296319,Charles De Ketelaere,Atalanta,11.0,1.0,3.0
+I1,287790,Nicolò Cambiaghi,Bologna,11.0,0.0,3.0
+I1,288901,Nuno Tavares,Lazio,11.0,1.0,3.0
+I1,332354,Wesley,AS Roma,10.0,0.0,3.0
+I1,364590,Rafik Belghali,Torino,9.0,1.0,3.0
+I1,288488,Nicola Zalewski,Atalanta,9.0,1.0,3.0
+I1,344844,Danilo Veiga,Lecce,11.0,0.0,2.0
+I1,272745,Michel Adopo,Cagliari,11.0,1.0,2.0
+I1,252971,Randal Kolo Muani,Juventus,11.0,1.0,2.0
+I1,360061,Cher Ndour,Fiorentina,11.0,0.0,2.0
+I1,320074,Douglas Luiz,Juventus,11.0,1.0,2.0
+I1,259871,Ricardo Mangas,Monza,11.0,1.0,2.0
+I1,276254,Nicolò Fagioli,Fiorentina,11.0,0.0,2.0
+I1,418819,Paul Mendy,Cagliari,11.0,1.0,2.0
+I1,76762,Luka Modric,AC Milan,11.0,0.0,2.0
+I1,248440,Samuele Birindelli,Monza,10.0,0.0,2.0
+I1,155904,Giovanni Di Lorenzo,Napoli,10.0,0.0,2.0
+I1,204441,Nicolò Barella,Internazionale,10.0,1.0,2.0
+I1,297084,Yan Couto,Como,10.0,0.0,2.0
+I1,367861,Álex Jiménez,Fiorentina,10.0,2.0,2.0
+I1,135743,Nemanja Matic,Sassuolo,10.0,0.0,2.0
+I1,233654,Keinan Davis,Udinese,10.0,0.0,2.0
+I1,177782,Piotr Zielinski,Internazionale,10.0,2.0,2.0
+I1,338266,Gvidas Gineitis,Torino,10.0,0.0,2.0
+I1,265912,Maxence Caqueret,Como,10.0,0.0,2.0
+I1,218439,Alfonso Pedraza,Lazio,10.0,0.0,2.0
+I1,212597,Gianluca Mancini,AS Roma,9.0,0.0,2.0
+I1,384170,Darryl Bakola,Sassuolo,9.0,0.0,2.0
+I1,271769,Carlos Augusto,Internazionale,9.0,2.0,2.0
+I1,164826,Nahuel Molina,AS Roma,9.0,0.0,2.0
+F2,329454,Yaya Fofana,Stade de Reims,12.0,11.0,2.0
+F2,388196,Pape Fall,Metz,11.0,8.0,1.0
+F2,326183,Augustine Boakye,Saint-Étienne,12.0,6.0,3.0
+F2,252441,Irvin Cardona,Saint-Étienne,12.0,6.0,5.0
+F2,377969,Nicolas Pays,Montpellier,12.0,5.0,2.0
+F2,315033,Damien Durand,Red Star FC 93,12.0,5.0,0.0
+F2,296408,Thierno Ballo,Saint-Étienne,12.0,5.0,2.0
+F2,317401,Dion Moise Sahi,Annecy,11.0,5.0,0.0
+F2,170183,Júlio Tavares,Dijon FCO,11.0,5.0,1.0
+F2,324565,Ibrahima Baldé,Rodez Aveyron,4.0,5.0,0.0
+F2,416399,Mathys Houdayer,Stade Laval,12.0,4.0,0.0
+F2,3110417,Babacar Leye,Pau,12.0,4.0,1.0
+F2,332146,Jovany Ikanga,Red Star FC 93,12.0,4.0,2.0
+F2,307854,Florian Bianchini,Clermont Foot,8.0,4.0,1.0
+F2,257130,Yanis Barka,Dijon FCO,8.0,4.0,0.0
+F2,355969,Ilyes Housni,AS Nancy Lorraine,12.0,3.0,5.0
+F2,322882,Nehemiah Fernandez,AS Nancy Lorraine,12.0,3.0,0.0
+F2,397378,Abdel Hbouch,Boulogne,12.0,3.0,1.0
+F2,265200,Jessy Deminguet,Metz,12.0,3.0,3.0
+F2,193806,Cheikh Fall,Pau,12.0,3.0,0.0
+F2,3099608,Samir Ben Brahim,Guingamp,12.0,3.0,1.0
+F2,308139,Egor Prutsev,Dunkerque,12.0,3.0,2.0
+F2,406416,Zakaria Fdaouch,AS Nancy Lorraine,12.0,3.0,1.0
+F2,307132,Samy Chouchane,Dijon FCO,12.0,3.0,1.0
+F2,332739,Hacène Benali,Pau,11.0,3.0,0.0
+F2,333031,Stanislas Kielt,Guingamp,11.0,3.0,1.0
+F2,303769,Jakob Breum,Saint-Étienne,11.0,3.0,6.0
+F2,290755,Thibault Rambaud,Annecy,11.0,3.0,0.0
+F2,105727,Souleymane Keita,Dunkerque,11.0,3.0,2.0
+F2,270564,Benjamin Gomel,Sochaux,10.0,3.0,0.0
+F2,3122301,Laciné Megnan Pave,Montpellier,10.0,3.0,2.0
+F2,290160,Ugo Bonnet,Grenoble,10.0,3.0,2.0
+F2,73342,Mamadou Camara,Montpellier,9.0,3.0,0.0
+F2,163924,Téji Savanier,Metz,9.0,3.0,2.0
+F2,223119,Aboubakary Kanté,Stade Laval,9.0,3.0,0.0
+F2,322899,Kilian Corredor,Nantes,8.0,3.0,1.0
+F2,197881,Opa Sanganté,Dunkerque,12.0,2.0,0.0
+F2,408571,Nolan Binet,Boulogne,12.0,2.0,0.0
+F2,355271,Teddy Averlant,Guingamp,12.0,2.0,2.0
+F2,328989,Adel Lembezat,Dijon FCO,12.0,2.0,2.0
+F2,192989,Saif-Eddine Khaoui,Red Star FC 93,12.0,2.0,1.0
+F2,314409,Sambou Soumano,Stade de Reims,12.0,2.0,1.0
+F2,256549,Lorenzo Rajot,Pau,12.0,2.0,3.0
+F2,404769,Khalil Ayari,Dunkerque,12.0,2.0,0.0
+F2,290580,Daylam Meddah,Montpellier,11.0,2.0,0.0
+F2,345311,Samba Diba,Grenoble,11.0,2.0,0.0
+F2,408533,Ethan Clavreul,Stade Laval,11.0,2.0,4.0
+F2,281525,Youssef El Kachati,Stade de Reims,11.0,2.0,1.0
+F2,289555,Giorgi Abuashvili,Metz,10.0,2.0,0.0
+F2,345226,Donatien Gomis,Guingamp,10.0,2.0,2.0
+F2,321099,Daouda Guindo,Stade de Reims,12.0,1.0,4.0
+F2,358733,Raphael Lipinski,Rodez Aveyron,12.0,1.0,3.0
+F2,304737,Kenny Nagera,Rodez Aveyron,12.0,0.0,3.0
+F2,207002,Jessy Benet,Pau,11.0,1.0,3.0
+F2,349186,Paul Bellon,Dijon FCO,11.0,0.0,3.0
+F2,386379,Julien Kouadio,Annecy,12.0,0.0,2.0
+F2,322466,Áron Csongvai,Saint-Étienne,12.0,1.0,2.0
+F2,409687,Islamdine Halifa,Red Star FC 93,12.0,0.0,2.0
+F2,251313,Antoine Larose,Annecy,12.0,1.0,2.0
+F2,182143,Jordan Marié,Dijon FCO,12.0,1.0,2.0
+F2,406418,Paul Venot,Annecy,12.0,1.0,2.0
+F2,211776,Junior Sambia,Clermont Foot,12.0,0.0,2.0
+F2,415331,Esteban Mouton,Stade Laval,11.0,0.0,2.0
+F2,290652,Adrien Lebeau,Dunkerque,11.0,1.0,2.0
+F2,272616,Clément Billemaz,Annecy,11.0,1.0,2.0
+F2,409660,Nordan Mukiele,Montpellier,11.0,1.0,2.0
+F2,285666,Zuriko Davitashvili,Saint-Étienne,11.0,1.0,2.0
+F2,215028,Vital N'Simba,Clermont Foot,10.0,0.0,2.0
+F2,173559,Florien Tardieu,Montpellier,10.0,0.0,2.0
+F2,204777,Anthony Briancon,Pau,10.0,1.0,2.0
+F2,281523,Kévin Cabral,Red Star FC 93,9.0,1.0,2.0
+F2,307420,Benjamin Besic,Boulogne,9.0,0.0,2.0
+F2,325990,Nordine Kandil,AS Nancy Lorraine,9.0,1.0,2.0
+F2,415930,Arone Gadou,Stade de Reims,9.0,1.0,2.0
+F2,332894,Amine Hemia,Guingamp,8.0,0.0,2.0
+F2,332829,Ryad Hachem,Nantes,8.0,1.0,2.0
+F2,305682,Wilitty Younoussa,Nantes,8.0,2.0,2.0
+F2,336936,Jeremy Sebas,Pau,7.0,0.0,2.0
+F2,217119,Thomas Robinet,Nantes,7.0,2.0,0.0
+F2,416266,Marco Decherf,Dunkerque,4.0,1.0,2.0
+F2,323044,Mathis Magnin,Rodez Aveyron,12.0,0.0,1.0

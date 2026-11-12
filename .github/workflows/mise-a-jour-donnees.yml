@@ -37,17 +37,21 @@ jobs:
       - name: Télécharger la saison en cours et la prochaine journée
         run: uv run simulateur-foot maj
 
+      - name: Télécharger les buteurs et les passeurs
+        # ESPN peut être indisponible : on garde alors le fichier précédent
+        run: uv run simulateur-foot joueurs || echo "Statistiques des joueurs non mises à jour."
+
       - name: Vérifier que tout fonctionne avec les nouvelles données
         run: uv run pytest -q
 
       - name: Commiter les nouveaux résultats
         run: |
-          if git diff --quiet -- data/resultats.csv data/prochains_matchs.csv; then
+          if git diff --quiet -- data/resultats.csv data/prochains_matchs.csv data/joueurs.csv; then
             echo "Rien de nouveau."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/resultats.csv data/prochains_matchs.csv
+          git add data/resultats.csv data/prochains_matchs.csv data/joueurs.csv
           git commit -m "Données : résultats au $(date -u +%d/%m/%Y)"
           git push
