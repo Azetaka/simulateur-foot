@@ -81,21 +81,7 @@ Chiffres moyennés sur les six championnats. Le poids a été choisi sur les deu
 
 **Modèle de score.** Deux régressions de Poisson sur les deux notes (buts du club qui reçoit, buts de l'autre) donnent les buts attendus, puis une grille de probabilités par score (`scores.py`). Pour l'issue du match, ce modèle ne bat pas la logistique : sur la saison test, il fait mieux dans quatre championnats et moins bien dans deux, et il sous-estime les nuls. Il n'est donc pas utilisé seul : la grille est **recalée région par région** (défaite, nul, victoire) sur les chances de la logistique. Il sert à afficher les scores probables, à tirer un score dans « Jouer le match », et à tirer l'écart de buts de chaque match simulé, qui alimente la différence de buts (départage) et la mise à jour Elo pondérée.
 
-## Mise à jour (face aux bookmakers, pistes écartées, suivi en direct)
-
-**Le modèle face aux bookmakers.** `uv run simulateur-foot bookmakers` compare, sur la saison test 2526 et pour les six championnats, la logistique sur les forces aux cotes moyennes du marché (marge retirée). « Bons pronostics » est la part des matchs où l'issue jugée la plus probable est la bonne.
-
-| Championnat | Matchs | Fréquences | Modèle | Bookmakers |
-|---|---|---|---|---|
-| Ligue 1 | 306 | 46,1 % · 1,065 | 52,0 % · 1,003 | 53,9 % · 0,973 |
-| Premier League | 380 | 42,6 % · 1,085 | 48,7 % · 1,030 | 49,5 % · 1,015 |
-| Liga | 380 | 48,9 % · 1,049 | 52,9 % · 0,970 | 54,5 % · 0,964 |
-| Bundesliga | 306 | 43,8 % · 1,071 | 53,6 % · 0,966 | 54,9 % · 0,953 |
-| Serie A | 380 | 38,9 % · 1,090 | 51,6 % · 1,001 | 54,2 % · 0,980 |
-| Ligue 2 | 305 | 37,7 % · 1,103 | 41,3 % · 1,084 | 42,3 % · 1,060 |
-| **Ensemble** | **2 057** | **43,1 % · 1,077** | **50,1 % · 1,008** | **51,7 % · 0,990** |
-
-Chaque case donne les bons pronostics, puis la log-loss. Le modèle est à 1,6 point des bookmakers en bons pronostics et à 0,018 en log-loss, avec deux notes Elo pour seule information. Environ 50 % est donc proche du plafond : un quart des matchs finissent en nul, presque imprévisible, et le marché lui-même ne dépasse pas 52 %. Le modèle ne désigne presque jamais le nul comme issue la plus probable (17 matchs sur 2 057, pour 539 nuls réels), ce qui est sans effet sur le simulateur, qui tire au sort selon les probabilités. Il est un peu trop sûr de lui sur les matchs équilibrés : quand il annonce 50 %, il a raison 46 % du temps ; à 60 %, 55 % ; au-delà de 65 %, il est juste (73 % annoncés, 73 % réels).
+## Mise à jour (pistes écartées, suivi en direct, projection des joueurs)
 
 **Pistes essayées et écartées.** Réglages choisis sur les saisons de validation, puis mesurés une fois sur 2526, six championnats réunis :
 
@@ -107,8 +93,8 @@ Chaque case donne les bons pronostics, puis la log-loss. Le modèle est à 1,6 p
 | Note unique mêlant résultat et tirs cadrés (40 %) | 1,0070 | −0,0012 |
 | Un seul modèle pour les six championnats | 1,0056 | −0,0026 [−0,0062 ; +0,0009] |
 
-Aucun écart ne se distingue du bruit et la part de bons pronostics ne bouge pas (50 %). Les tirs cadrés n'apportent rien de plus que l'Elo pondéré par l'écart de buts. Rien n'a été retenu : l'écart restant avec les bookmakers vient d'informations absentes des données (blessures, compositions, coupes d'Europe).
+Aucun écart ne se distingue du bruit et la part de bons pronostics ne bouge pas (50 %). Les tirs cadrés n'apportent rien de plus que l'Elo pondéré par l'écart de buts. Rien n'a été retenu : ce qui manque au modèle, ce sont des informations absentes des données (blessures, compositions, coupes d'Europe).
 
-**Suivi en direct.** La saison test est une saison passée. `uv run simulateur-foot pronostics` enregistre chaque semaine, dans `data/pronostics.csv`, les chances annoncées pour les matchs à venir et celles des bookmakers, avant qu'ils soient joués ; une annonce n'est jamais réécrite. L'onglet « Le modèle est-il fiable ? » en affiche le bilan au fil de la saison.
+**Suivi en direct.** La saison test est une saison passée. `uv run simulateur-foot pronostics` enregistre chaque semaine, dans `data/pronostics.csv`, les chances annoncées pour les matchs à venir, avant qu'ils soient joués ; une annonce n'est jamais réécrite. L'onglet « Le modèle est-il fiable ? » en affiche le bilan au fil de la saison.
 
 **Projection des joueurs.** Prolonger le rythme d'un joueur tel quel surestime les départs canon (9 buts en 10 matchs donnaient 31 buts en fin de saison). Le rythme est maintenant ramené vers la moyenne des joueurs du classement, comme si le joueur avait disputé 10 matchs de plus au rythme moyen (`joueurs.MATCHS_PRUDENCE`), puis ajusté à la difficulté des matchs restants de son club (buts attendus du modèle de score). Le même joueur est projeté à 24 buts. La valeur 10 est un choix raisonnable, pas un réglage mesuré : il faudrait un historique de statistiques de joueurs pour le valider.

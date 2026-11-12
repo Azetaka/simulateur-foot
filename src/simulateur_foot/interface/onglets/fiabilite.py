@@ -43,21 +43,15 @@ def afficher(ctx):
                    "que les premiers matchs suivis auront été joués.")
     else:
         st.markdown(f"Depuis le {bilan_tous['depuis']:%d/%m/%Y}, les chances annoncées pour chaque match sont "
-                    "enregistrées **avant** qu'il soit joué, avec celles des bookmakers. Voici le bilan sur "
-                    "les matchs joués depuis : contrairement à l'examen ci-dessous, le modèle ne peut pas "
-                    "avoir vu ces résultats.")
-        s1, s2, s3, s4 = st.columns(4)
-        for colonne, titre, bilan in [(s1, regles.nom, bilan_ligue), (s3, "Les six championnats", bilan_tous)]:
-            voisine = s2 if colonne is s1 else s4
+                    "enregistrées **avant** qu'il soit joué. Voici le bilan sur les matchs joués depuis : "
+                    "contrairement à l'examen ci-dessous, le modèle ne peut pas avoir vu ces résultats.")
+        s1, s2 = st.columns(2)
+        for colonne, titre, bilan in [(s1, regles.nom, bilan_ligue), (s2, "Les six championnats", bilan_tous)]:
             if bilan is None:
-                chiffre_cle(colonne, f"{titre} · modèle", "–", "aucun match suivi pour l'instant")
-                chiffre_cle(voisine, f"{titre} · bookmakers", "–", "")
-                continue
-            modele, marche = bilan["modele"], bilan["bookmakers"]
-            chiffre_cle(colonne, f"{titre} · modèle", pourcent(modele["precision"]),
-                        f"de bons pronostics sur {modele['matchs']} matchs")
-            chiffre_cle(voisine, f"{titre} · bookmakers", pourcent(marche["precision"]) if marche else "–",
-                        f"sur {marche['matchs']} matchs avec cotes" if marche else "pas de cotes")
+                chiffre_cle(colonne, titre, "–", "aucun match suivi pour l'instant")
+            else:
+                chiffre_cle(colonne, titre, pourcent(bilan["precision"]),
+                            f"de bons pronostics sur {bilan['matchs']} matchs")
         st.caption("Sur quelques dizaines de matchs, ces pourcentages bougent beaucoup d'une semaine à "
                    "l'autre : ils ne deviennent parlants qu'au fil de la saison.")
 

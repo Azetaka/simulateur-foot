@@ -6,7 +6,9 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from simulateur_foot import calendrier_saison
 from simulateur_foot.force_clubs import NOTE_INITIALE
+from simulateur_foot.prediction import probabilites
 from simulateur_foot.interface.commun import (
     FORME,
     chiffre_cle,
@@ -14,6 +16,7 @@ from simulateur_foot.interface.commun import (
     ecusson,
     explication,
     fin_de_saison,
+    modele_retenu,
     forces_du_jour,
     forme_recente,
     joueurs_projetes,
@@ -81,6 +84,27 @@ def afficher(ctx):
                 f'<span>{html.escape(adversaire)} <span class="lieu">· {"domicile" if a_domicile else "extérieur"}'
                 f'</span></span><b>{int(pour)}–{int(contre)}</b></div>')
         st.html(f'<div class="matchs-club">{"".join(lignes_matchs)}</div>')
+        a_venir = calendrier_saison.prochains_matchs_club(calendrier_saison.charger(code, saison), club)
+        if not a_venir.empty:
+            st.subheader("Ses prochains matchs")
+            chances = probabilites(modele_retenu(code, version), a_venir["HomeTeam"].map(notes).to_numpy(),
+                                   a_venir["AwayTeam"].map(notes).to_numpy())
+            lignes_a_venir = []
+            for i, m in a_venir.iterrows():
+                a_domicile = m["HomeTeam"] == club
+                adversaire = m["AwayTeam"] if a_domicile else m["HomeTeam"]
+                victoire = chances.loc[i, "H" if a_domicile else "A"]
+                defaite = chances.loc[i, "A" if a_domicile else "H"]
+                lignes_a_venir.append(
+                    f'<div><span class="date">{m["Date"]:%d/%m}</span><span></span>'
+                    f'{ecusson(chemin_club(code, adversaire), alt=adversaire) or "<span></span>"}'
+                    f'<span>{html.escape(adversaire)} <span class="lieu">· '
+                    f'{"domicile" if a_domicile else "extérieur"}</span></span>'
+                    f'<b title="Victoire {pourcent(victoire)} · nul {pourcent(chances.loc[i, "D"])} · '
+                    f'défaite {pourcent(defaite)}">{pourcent(victoire)}</b></div>')
+            st.html(f'<div class="matchs-club">{"".join(lignes_a_venir)}</div>')
+            st.caption("À droite : ses chances de victoire selon le modèle, avec les notes du jour "
+                       "(survolez pour le nul et la défaite).")
         nb_a_jouer = int(len(matchs_restants(saison).query("HomeTeam == @club or AwayTeam == @club")))
         st.caption(f"Il lui reste {nb_a_jouer} matchs. Note moyenne de ses adversaires à venir : "
                    f"{forces_club['calendrier']:.0f} (1500 = club moyen ; plus c'est haut, plus c'est dur).")

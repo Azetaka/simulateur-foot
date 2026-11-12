@@ -1,5 +1,5 @@
-# Met à jour data/resultats.csv, data/prochains_matchs.csv, data/joueurs.csv et
-# data/pronostics.csv deux fois par semaine
+# Met à jour les fichiers de data/ (résultats, prochaine journée, calendrier, joueurs,
+# pronostics) deux fois par semaine
 # et les commite sur develop.
 # football-data.co.uk publie en général le lundi (week-end) et en milieu de
 # semaine (matchs du mardi-mercredi) : on passe le mardi et le vendredi matin.
@@ -51,6 +51,7 @@ jobs:
       - name: Commiter les nouveaux résultats
         run: |
           git add data/resultats.csv data/prochains_matchs.csv data/joueurs.csv
+          if [ -f data/calendrier.csv ]; then git add data/calendrier.csv; fi
           if [ -f data/pronostics.csv ]; then git add data/pronostics.csv; fi
           if git diff --cached --quiet; then
             echo "Rien de nouveau."

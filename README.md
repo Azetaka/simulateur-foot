@@ -54,11 +54,11 @@ Un sélecteur en haut choisit le championnat (l'adresse garde le choix : `?champ
 
 - **Un match** : chances de victoire, de nul et de défaite entre deux clubs, scores les plus probables et grille des scores, tirage au sort d'un score (et du même match joué 100 fois), évolution des notes Elo et confrontations passées.
 - **Les forces du moment** : les clubs rangés par note Elo, avec la tendance sur les 5 derniers matchs, l'écart avec le classement et la difficulté du calendrier restant.
-- **Prochaine journée** : les chances du modèle face à celles des bookmakers sur les matchs annoncés.
+- **Prochaine journée** : les chances de chaque issue sur les matchs à venir, le favori le plus net et le match le plus ouvert.
 - **La fin de saison** : des milliers de saisons simulées à partir du classement actuel ; points attendus avec leur fourchette, chances de titre, de places européennes (ou de montée), de barrage et de relégation, et carte des places finales possibles. La prochaine journée annoncée est jouée en premier.
-- **Fiche club** : la note et la forme d'un club, ses chances de fin de saison, ses derniers matchs et ses meilleurs joueurs.
+- **Fiche club** : la note et la forme d'un club, ses chances de fin de saison, ses derniers et ses prochains matchs (avec ses chances de victoire) et ses meilleurs joueurs.
 - **Les meilleurs joueurs** : buteurs et passeurs avec leur total prévu en fin de saison. Le rythme de chaque joueur est ramené vers la moyenne (un départ canon se prolonge rarement) et ajusté à la difficulté des matchs restants de son club.
-- **Le modèle est-il fiable ?** : part de pronostics justes sur une saison que le modèle n'a pas vue, calibration des probabilités et plus grosses surprises. En tête, le suivi en direct : le bilan des pronostics enregistrés avant chaque match de la saison en cours, face aux bookmakers.
+- **Le modèle est-il fiable ?** : part de pronostics justes sur une saison que le modèle n'a pas vue, calibration des probabilités et plus grosses surprises. En tête, le suivi en direct : le bilan des pronostics enregistrés avant chaque match de la saison en cours.
 
 ## Données à jour
 
@@ -66,7 +66,8 @@ Les résultats viennent de [football-data.co.uk](https://www.football-data.co.uk
 
 - **Automatiquement** : au lancement, l'interface retélécharge la saison en cours si ses données ont plus de 12 h (quelques secondes). Sans réseau, elle continue avec les données locales et le signale.
 - **À la demande** : bouton « Mettre à jour » dans l'interface, ou `uv run simulateur-foot maj`.
-- **Prochaine journée** : la même source publie en milieu de semaine les matchs du week-end suivant avec les cotes des bookmakers (`data/prochains_matchs.csv`, mis à jour en même temps que les résultats). L'onglet « Prochaine journée » compare les chances du modèle à celles des bookmakers, marge retirée.
+- **Prochaine journée** : la même source publie en milieu de semaine les matchs du week-end suivant (`data/prochains_matchs.csv`, mis à jour en même temps que les résultats).
+- **Calendrier** : football-data.co.uk n'annonce que la prochaine journée, et rien pendant les trêves. Le calendrier complet des matchs à venir vient de l'API publique d'ESPN (`data/calendrier.csv`, mis à jour avec les résultats ou par `uv run simulateur-foot calendrier`). Il fournit la prochaine journée quand la source n'a rien publié et les prochains matchs de chaque club.
 - **Joueurs** : les buteurs et passeurs viennent de l'API publique d'ESPN (`data/joueurs.csv`), retéléchargés au lancement de l'interface s'ils ont plus de 12 h, ou avec `uv run simulateur-foot joueurs`.
 - **Sur GitHub** : la tâche [Mise à jour des données](.github/workflows/mise-a-jour-donnees.yml) tourne le mardi et le vendredi à 6 h UTC. Elle télécharge la saison en cours et la prochaine journée, enregistre les pronostics des matchs à venir, met à jour les statistiques des joueurs, lance les tests et commite les fichiers de `data/` sur `develop` s'il y a du nouveau. GitHub ne lance les tâches planifiées que depuis la branche par défaut : le fichier doit être présent sur `main`. Elle se lance aussi à la main depuis l'onglet Actions.
 
@@ -83,12 +84,12 @@ L'option `-c` choisit le championnat (`F1` Ligue 1 par défaut, `E0` Premier Lea
 | `uv run simulateur-foot reglage` | Cherche les meilleurs paramètres Elo |
 | `uv run simulateur-foot modele` | Compare les modèles de prédiction (≈ 2 min) |
 | `uv run simulateur-foot simulation` | Simule la fin de la saison en cours dans le terminal |
-| `uv run simulateur-foot bookmakers` | Compare le modèle aux bookmakers sur la saison test (télécharge les cotes) |
 | `uv run simulateur-foot pronostics` | Enregistre les pronostics des matchs à venir et affiche leur bilan |
+| `uv run simulateur-foot calendrier` | Télécharge le calendrier des matchs à venir |
 | `uv run simulateur-foot joueurs` | Télécharge les meilleurs buteurs et passeurs |
 | `uv run simulateur-foot logos` | Télécharge les écussons manquants |
 
-`resultats.csv`, `prochains_matchs.csv`, `joueurs.csv` et `pronostics.csv` sont versionnés : ce sont les données sources, et le journal des pronostics ne peut pas être reconstitué après coup. Les autres fichiers de `data/` se recalculent.
+`resultats.csv`, `prochains_matchs.csv`, `calendrier.csv`, `joueurs.csv` et `pronostics.csv` sont versionnés : ce sont les données sources, et le journal des pronostics ne peut pas être reconstitué après coup. Les autres fichiers de `data/` se recalculent.
 
 ## Organisation
 
@@ -103,9 +104,9 @@ src/simulateur_foot/
   prediction.py           modèle retenu : probabilités d'un match
   scores.py               probabilités de chaque score (Poisson, recalé sur prediction.py)
   simulation.py           simulation de la fin de saison (Monte-Carlo, scores et notes qui évoluent)
+  calendrier_saison.py    calendrier des matchs à venir (ESPN)
   joueurs.py              buteurs et passeurs (ESPN) et leur projection de fin de saison
   logos.py                écussons des championnats et des clubs
-  bookmakers.py           modèle face aux bookmakers sur la saison test
   pronostics.py           suivi des pronostics enregistrés avant les matchs
   app.py                  interface Streamlit : en-tête et choix du championnat
   interface/commun.py     styles, petits composants et calculs mis en cache

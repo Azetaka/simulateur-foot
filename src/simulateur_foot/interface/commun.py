@@ -28,7 +28,6 @@ from simulateur_foot.modele import (
 )
 from simulateur_foot.prediction import (
     SAISON_EN_COURS,
-    chances_bookmakers,
     charger_forces,
     entrainer,
     probabilites,
@@ -441,18 +440,17 @@ def donnees_joueurs():
 
 @st.cache_data
 def prochaine_journee(code, version, version_prochains):
-    """Matchs annoncés, chances du modèle (notes du jour) et des bookmakers (cotes moyennes)."""
+    """Matchs annoncés et chances du modèle avec les notes du jour ; nombre de matchs écartés."""
     matchs, notes = donnees(code, version)
     prochains = charger_prochains_matchs(code, matchs[matchs["Saison"] == SAISON_EN_COURS])
     connus = prochains["HomeTeam"].isin(notes.index) & prochains["AwayTeam"].isin(notes.index)
     prochains = prochains[connus].reset_index(drop=True)
     if prochains.empty:  # rien d'annoncé : le modèle refuse un tableau vide
         vide = pd.DataFrame(columns=RESULTATS, dtype=float)
-        return prochains, vide, vide, int((~connus).sum())
+        return prochains, vide, int((~connus).sum())
     modele = probabilites(modele_retenu(code, version), prochains["HomeTeam"].map(notes).to_numpy(),
                           prochains["AwayTeam"].map(notes).to_numpy())
-    marche = chances_bookmakers(prochains["CoteH"], prochains["CoteD"], prochains["CoteA"])
-    return prochains, modele, marche, int((~connus).sum())
+    return prochains, modele, int((~connus).sum())
 
 
 @st.cache_data

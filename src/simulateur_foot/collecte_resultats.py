@@ -2,7 +2,7 @@
 
 Source : football-data.co.uk, mis à jour en général le lundi, après les
 matchs du week-end. La même source publie en milieu de semaine les matchs
-de la prochaine journée, avec les cotes des bookmakers (data/prochains_matchs.csv).
+de la prochaine journée (data/prochains_matchs.csv).
 """
 
 import time
@@ -20,8 +20,6 @@ DOSSIER_DATA = Path(__file__).resolve().parents[2] / "data"
 FICHIER = DOSSIER_DATA / "resultats.csv"
 URL_PROCHAINS = "https://www.football-data.co.uk/fixtures.csv"
 FICHIER_PROCHAINS = DOSSIER_DATA / "prochains_matchs.csv"
-# Cotes moyennes du marché (Avg…), à défaut celles de Bet365 (B365…)
-SOURCES_COTES = ["Avg", "B365"]
 
 
 def telecharger_saison(saison, championnat="F1"):
@@ -76,11 +74,17 @@ def mettre_a_jour():
         telecharger_prochains_matchs()
     except Exception as erreur:  # les résultats comptent plus que le calendrier : on continue
         print(f"Prochains matchs indisponibles ({erreur.__class__.__name__}).")
+    try:
+        from .calendrier_saison import telecharger as telecharger_calendrier
+
+        telecharger_calendrier()
+    except Exception as erreur:
+        print(f"Calendrier indisponible ({erreur.__class__.__name__}).")
     return int(nouveaux)
 
 
 def telecharger_prochains_matchs():
-    """Enregistre les matchs annoncés de la prochaine journée, avec leurs cotes ; renvoie leur nombre."""
+    """Enregistre les matchs annoncés de la prochaine journée ; renvoie leur nombre."""
     df = pd.read_csv(URL_PROCHAINS, encoding="utf-8-sig")
     df = df[df["Div"].isin(list(CHAMPIONNATS))].dropna(subset=["HomeTeam", "AwayTeam"])
     prochains = pd.DataFrame({
@@ -90,9 +94,6 @@ def telecharger_prochains_matchs():
         "HomeTeam": df["HomeTeam"],
         "AwayTeam": df["AwayTeam"],
     })
-    for issue in "HDA":
-        cotes = [df[f"{source}{issue}"] for source in SOURCES_COTES if f"{source}{issue}" in df]
-        prochains[f"Cote{issue}"] = pd.concat(cotes, axis=1).bfill(axis=1).iloc[:, 0] if cotes else float("nan")
     DOSSIER_DATA.mkdir(exist_ok=True)
     prochains.sort_values(["Championnat", "Date", "Heure"], kind="stable").to_csv(
         FICHIER_PROCHAINS, index=False, date_format="%Y-%m-%d")
@@ -100,17 +101,28 @@ def telecharger_prochains_matchs():
 
 
 def charger_prochains_matchs(championnat, matchs_saison):
-    """Prochains matchs d'un championnat qui n'ont pas encore été joués (vide si rien n'est annoncé)."""
-    if not FICHIER_PROCHAINS.exists():
-        return pd.DataFrame(columns=["Championnat", "Date", "Heure", "HomeTeam", "AwayTeam",
-                                     "CoteH", "CoteD", "CoteA"])
-    prochains = pd.read_csv(FICHIER_PROCHAINS, parse_dates=["Date"])
-    prochains = prochains[prochains["Championnat"] == championnat]
-    # Le fichier de la source peut encore lister des matchs du week-end passé
-    jouees = set(zip(matchs_saison["HomeTeam"], matchs_saison["AwayTeam"]))
-    a_venir = [(d, e) not in jouees for d, e in zip(prochains["HomeTeam"], prochains["AwayTeam"])]
-    # Tableau de booléens explicite : avec une liste vide, pandas sélectionnerait zéro colonne
-    return prochains[np.array(a_venir, dtype=bool)].reset_index(drop=True)
+    """Prochains matchs d'un championnat qui n'ont pas encore été joués (vide si rien n'est annoncé).
+
+    La source annonce la prochaine journée quelques jours avant. Quand elle n'a encore rien
+    publié (début de semaine, trêve), on prend la prochaine journée du calendrier.
+    """
+    colonnes = ["Championnat", "Date", "Heure", "HomeTeam", "AwayTeam"]
+    prochains = pd.DataFrame(columns=colonnes)
+    if FICHIER_PROCHAINS.exists():
+        prochains = pd.read_csv(FICHIER_PROCHAINS, parse_dates=["Date"]).reindex(columns=colonnes)
+        prochains = prochains[prochains["Championnat"] == championnat]
+        # Le fichier de la source peut encore lister des matchs du week-end passé
+        jouees = set(zip(matchs_saison["HomeTeam"], matchs_saison["AwayTeam"]))
+        a_venir = [(d, e) not in jouees for d, e in zip(prochains["HomeTeam"], prochains["AwayTeam"])]
+        # Tableau de booléens explicite : avec une liste vide, pandas sélectionnerait zéro colonne
+        prochains = prochains[np.array(a_venir, dtype=bool)].reset_index(drop=True)
+    if prochains.empty:
+        from .calendrier_saison import prochaine_journee  # import tardif : ce module dépend de celui-ci
+
+        journee = prochaine_journee(championnat, matchs_saison)
+        if not journee.empty:
+            prochains = journee.reindex(columns=colonnes)
+    return prochains
 
 
 def heures_depuis_mise_a_jour():

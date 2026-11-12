@@ -117,7 +117,7 @@ if st.session_state.verification:
 
 fichier_prochains = collecte_resultats.FICHIER_PROCHAINS  # lu sur le module : les tests le remplacent
 version_prochains = fichier_prochains.stat().st_mtime if fichier_prochains.exists() else 0
-prochains, chances_modele, chances_marche, inconnus = prochaine_journee(code, version, version_prochains)
+prochains, chances_modele, inconnus = prochaine_journee(code, version, version_prochains)
 affiches_annoncees = tuple(sorted(zip(prochains["HomeTeam"], prochains["AwayTeam"])))
 
 (onglet_match, onglet_forces, onglet_journee, onglet_saison, onglet_club, onglet_joueurs,
@@ -128,8 +128,7 @@ affiches_annoncees = tuple(sorted(zip(prochains["HomeTeam"], prochains["AwayTeam
 
 # Ce que les onglets reçoivent : le championnat choisi et ses données
 ctx = SimpleNamespace(
-    affiches_annoncees=affiches_annoncees, c=c, chances_marche=chances_marche,
-    chances_modele=chances_modele, code=code, inconnus=inconnus, matchs=matchs, notes=notes,
+    affiches_annoncees=affiches_annoncees, c=c, chances_modele=chances_modele, code=code, inconnus=inconnus, matchs=matchs, notes=notes,
     prochains=prochains, rangs_actuels=rangs_actuels, regles=regles, saison=saison,
     table_actuelle=table_actuelle, version=version)
 

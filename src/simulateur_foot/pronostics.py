@@ -1,7 +1,7 @@
 """Suivi des pronostics : ce que le modèle annonçait avant chaque match, puis ce qui s'est passé.
 
 La saison test de RAPPORT.md est une saison passée. Ici, on garde chaque semaine les chances
-annoncées pour les matchs à venir (et celles des bookmakers), avant qu'ils soient joués :
+annoncées pour les matchs à venir, avant qu'ils soient joués :
 c'est la seule mesure où le modèle ne peut pas avoir « vu » le résultat.
 
 Un pronostic déjà enregistré n'est jamais réécrit : on garde la première annonce.
@@ -17,7 +17,6 @@ from .collecte_resultats import DOSSIER_DATA, FICHIER, charger_prochains_matchs
 from .modele import RESULTATS
 from .prediction import (
     SAISON_EN_COURS,
-    chances_bookmakers,
     charger_forces,
     entrainer,
     probabilites,
@@ -25,8 +24,7 @@ from .prediction import (
 
 FICHIER_PRONOSTICS = DOSSIER_DATA / "pronostics.csv"
 CLES = ["Championnat", "Saison", "HomeTeam", "AwayTeam"]
-MARCHE = [f"marche_{r}" for r in RESULTATS]
-COLONNES = CLES + ["Date", "enregistre_le"] + RESULTATS + MARCHE
+COLONNES = CLES + ["Date", "enregistre_le"] + RESULTATS
 
 
 def charger():
@@ -36,7 +34,7 @@ def charger():
 
 
 def pronostics_du_jour(code, aujourd_hui=None):
-    """Chances du modèle (notes du jour) et des bookmakers pour les matchs annoncés d'un championnat."""
+    """Chances du modèle, avec les notes du jour, pour les matchs annoncés d'un championnat."""
     matchs, notes = charger_forces(code)
     prochains = charger_prochains_matchs(code, matchs[matchs["Saison"] == SAISON_EN_COURS])
     prochains = prochains[prochains["HomeTeam"].isin(notes.keys()) & prochains["AwayTeam"].isin(notes.keys())]
@@ -45,12 +43,10 @@ def pronostics_du_jour(code, aujourd_hui=None):
         return pd.DataFrame(columns=COLONNES)
     modele = probabilites(entrainer(matchs), prochains["HomeTeam"].map(notes).to_numpy(),
                           prochains["AwayTeam"].map(notes).to_numpy())
-    marche = chances_bookmakers(prochains["CoteH"], prochains["CoteD"], prochains["CoteA"])
     lignes = prochains[["Championnat", "HomeTeam", "AwayTeam", "Date"]].copy()
     lignes["Saison"] = SAISON_EN_COURS
     lignes["enregistre_le"] = pd.Timestamp(aujourd_hui or pd.Timestamp.now()).normalize()
     lignes[RESULTATS] = modele.round(4).to_numpy()
-    lignes[MARCHE] = marche.round(4).to_numpy()
     return lignes[COLONNES]
 
 
@@ -58,12 +54,15 @@ def enregistrer(aujourd_hui=None):
     """Ajoute au fichier les pronostics des matchs annoncés qui n'y sont pas encore ; renvoie leur nombre."""
     anciens = charger()
     nouveaux = pd.concat([pronostics_du_jour(code, aujourd_hui) for code in CHAMPIONNATS], ignore_index=True)
-    deja = set(map(tuple, anciens[CLES].astype(str).to_numpy()))
-    inedits = nouveaux[[tuple(ligne) not in deja for ligne in nouveaux[CLES].astype(str).to_numpy()]]
+
+    def cle(table):  # une chaîne par match ; liste construite à la main car agg échoue sur un tableau vide
+        return ["|".join(ligne) for ligne in table[CLES].astype(str).to_numpy()]
+
+    inedits = nouveaux[~pd.Series(cle(nouveaux), index=nouveaux.index).isin(cle(anciens))]
     if len(inedits):
         tout = inedits if anciens.empty else pd.concat([anciens, inedits], ignore_index=True)
         DOSSIER_DATA.mkdir(exist_ok=True)
-        tout.sort_values(["Date", "Championnat", "HomeTeam"], kind="stable").to_csv(
+        tout[COLONNES].sort_values(["Date", "Championnat", "HomeTeam"], kind="stable").to_csv(
             FICHIER_PRONOSTICS, index=False, date_format="%Y-%m-%d")
     return len(inedits)
 
@@ -77,28 +76,19 @@ def avec_resultats(pronostics=None, resultats=None):
 
 
 def bilan(joues, championnat=None):
-    """Nombre de matchs suivis, bons pronostics et log-loss du modèle et des bookmakers.
+    """Nombre de matchs suivis, part de bons pronostics et log-loss du modèle.
 
-    Renvoie None tant qu'aucun match suivi n'a été joué. Les bookmakers ne sont comptés que
-    sur les matchs qui avaient des cotes.
+    Renvoie None tant qu'aucun match suivi n'a été joué.
     """
     if championnat is not None:
         joues = joues[joues["Championnat"] == championnat]
     if joues.empty:
         return None
     reel = pd.Index(RESULTATS).get_indexer(joues["FTR"])
-
-    def mesures(proba):
-        garde = ~np.isnan(proba).any(axis=1)
-        if not garde.any():
-            return None
-        p, r = proba[garde], reel[garde]
-        return {"matchs": int(garde.sum()), "precision": float((p.argmax(axis=1) == r).mean()),
-                "log_loss": float(-np.log(np.clip(p[np.arange(len(r)), r], 1e-12, None)).mean())}
-
+    proba = joues[RESULTATS].to_numpy(dtype=float)
     return {"matchs": len(joues), "depuis": joues["Date"].min(),
-            "modele": mesures(joues[RESULTATS].to_numpy(dtype=float)),
-            "bookmakers": mesures(joues[MARCHE].to_numpy(dtype=float))}
+            "precision": float((proba.argmax(axis=1) == reel).mean()),
+            "log_loss": float(-np.log(np.clip(proba[np.arange(len(reel)), reel], 1e-12, None)).mean())}
 
 
 def main():
@@ -107,11 +97,8 @@ def main():
     if resultat is None:
         print("Aucun match suivi n'a encore été joué.")
         return
-    print(f"Matchs suivis et joués : {resultat['matchs']} (depuis le {resultat['depuis']:%d/%m/%Y})")
-    for nom in ["modele", "bookmakers"]:
-        if resultat[nom]:
-            print(f"  {nom:<11} {resultat[nom]['precision']:.1%} de bons pronostics, "
-                  f"log-loss {resultat[nom]['log_loss']:.3f} ({resultat[nom]['matchs']} matchs)")
+    print(f"Matchs suivis et joués : {resultat['matchs']} (depuis le {resultat['depuis']:%d/%m/%Y}) : "
+          f"{resultat['precision']:.1%} de bons pronostics, log-loss {resultat['log_loss']:.3f}")
 
 
 if __name__ == "__main__":
