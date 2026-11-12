@@ -14,6 +14,7 @@ from simulateur_foot.championnats import CHAMPIONNATS, PAR_DEFAUT
 from simulateur_foot.collecte_resultats import (FICHIER, FICHIER_PROCHAINS, charger_prochains_matchs,
                                                 heures_depuis_mise_a_jour, mettre_a_jour)
 from simulateur_foot import joueurs as stats_joueurs
+from simulateur_foot import pronostics as suivi_pronostics
 from simulateur_foot.logos import chemin_championnat, chemin_club, url as logos_url
 from simulateur_foot.force_clubs import AVANTAGE_TERRAIN, NOTE_INITIALE, NOTE_PROMU, evolution_recente
 from simulateur_foot.modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT, evaluer,
@@ -407,6 +408,13 @@ def prochaine_journee(code, version, version_prochains):
                           prochains["AwayTeam"].map(notes).to_numpy())
     marche = chances_bookmakers(prochains["CoteH"], prochains["CoteD"], prochains["CoteA"])
     return prochains, modele, marche, int((~connus).sum())
+
+
+@st.cache_data
+def bilan_pronostics(code, version, version_pronostics):
+    """Bilan des pronostics enregistrés avant les matchs : (ce championnat, les six réunis)."""
+    joues = suivi_pronostics.avec_resultats()
+    return suivi_pronostics.bilan(joues, code), suivi_pronostics.bilan(joues)
 
 
 @st.cache_data
@@ -1036,6 +1044,34 @@ with onglet_fiabilite:
         f"prédit les {len(test)} matchs de la saison {nom_saison(SAISON_TEST)} sans les avoir vus. "
         "On compare ici ses prédictions à ce qui s'est vraiment passé. Le simulateur utilise ensuite "
         f"le même modèle, réentraîné en ajoutant {nom_saison(SAISON_TEST)}.")
+
+    st.subheader("Et cette saison ? Le suivi en direct")
+    fichier_suivi = suivi_pronostics.FICHIER_PRONOSTICS
+    bilan_ligue, bilan_tous = bilan_pronostics(code, version, fichier_suivi.stat().st_mtime) \
+        if fichier_suivi.exists() else (None, None)
+    if bilan_tous is None:
+        st.caption("Chaque semaine, les chances annoncées pour les matchs à venir sont enregistrées avant "
+                   "qu'ils soient joués (`uv run simulateur-foot pronostics`). Le bilan apparaîtra ici dès "
+                   "que les premiers matchs suivis auront été joués.")
+    else:
+        st.markdown(f"Depuis le {bilan_tous['depuis']:%d/%m/%Y}, les chances annoncées pour chaque match sont "
+                    "enregistrées **avant** qu'il soit joué, avec celles des bookmakers. Voici le bilan sur "
+                    "les matchs joués depuis : contrairement à l'examen ci-dessous, le modèle ne peut pas "
+                    "avoir vu ces résultats.")
+        s1, s2, s3, s4 = st.columns(4)
+        for colonne, titre, bilan in [(s1, regles.nom, bilan_ligue), (s3, "Les six championnats", bilan_tous)]:
+            voisine = s2 if colonne is s1 else s4
+            if bilan is None:
+                chiffre_cle(colonne, f"{titre} · modèle", "–", "aucun match suivi pour l'instant")
+                chiffre_cle(voisine, f"{titre} · bookmakers", "–", "")
+                continue
+            modele, marche = bilan["modele"], bilan["bookmakers"]
+            chiffre_cle(colonne, f"{titre} · modèle", pourcent(modele["precision"]),
+                        f"de bons pronostics sur {modele['matchs']} matchs")
+            chiffre_cle(voisine, f"{titre} · bookmakers", pourcent(marche["precision"]) if marche else "–",
+                        f"sur {marche['matchs']} matchs avec cotes" if marche else "pas de cotes")
+        st.caption("Sur quelques dizaines de matchs, ces pourcentages bougent beaucoup d'une semaine à "
+                   "l'autre : ils ne deviennent parlants qu'au fil de la saison.")
 
     fiab_gauche, fiab_droite = st.columns(2, gap="large")
     precision = (proba_test.idxmax(axis=1) == reel).mean()

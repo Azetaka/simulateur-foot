@@ -8,6 +8,7 @@ de la prochaine journée, avec les cotes des bookmakers (data/prochains_matchs.c
 import time
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from .championnats import CHAMPIONNATS
@@ -108,7 +109,8 @@ def charger_prochains_matchs(championnat, matchs_saison):
     # Le fichier de la source peut encore lister des matchs du week-end passé
     jouees = set(zip(matchs_saison["HomeTeam"], matchs_saison["AwayTeam"]))
     a_venir = [(d, e) not in jouees for d, e in zip(prochains["HomeTeam"], prochains["AwayTeam"])]
-    return prochains[a_venir].reset_index(drop=True)
+    # Tableau de booléens explicite : avec une liste vide, pandas sélectionnerait zéro colonne
+    return prochains[np.array(a_venir, dtype=bool)].reset_index(drop=True)
 
 
 def heures_depuis_mise_a_jour():

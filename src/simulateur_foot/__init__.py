@@ -14,6 +14,8 @@ ETAPES = {
     "reglage": ("reglage_force", "Cherche les meilleurs paramètres Elo"),
     "modele": ("modele", "Compare les modèles de prédiction (≈ 2 min)"),
     "simulation": ("simulation", "Simule la fin de la saison en cours"),
+    "bookmakers": ("bookmakers", "Compare le modèle aux bookmakers sur la saison test"),
+    "pronostics": ("pronostics", "Enregistre les pronostics des matchs à venir et affiche leur bilan"),
     "joueurs": ("joueurs", "Télécharge les meilleurs buteurs et passeurs (ESPN)"),
     "logos": ("logos", "Télécharge les écussons des championnats et des clubs"),
 }
