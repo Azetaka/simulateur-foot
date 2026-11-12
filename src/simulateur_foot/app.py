@@ -144,6 +144,30 @@ CSS = """
   .chiffre-cle .libelle { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase;
                           color: __encre2__; }
   .chiffre-cle .detail { font-size: .88rem; color: __encre2__; margin-top: .2rem; }
+  .fiche { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.2rem;
+           background: __carte__; border: 1px solid __bord__; border-radius: 10px; padding: 1.1rem 1.4rem;
+           margin-bottom: .8rem; }
+  .fiche .ecusson { width: 5rem; height: 5rem; }
+  .fiche h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 2.6rem; line-height: 1; margin: 0;
+              padding: 0; text-transform: uppercase; color: __encre__; }
+  .fiche .infos { color: __encre2__; font-size: .95rem; margin-top: .3rem; font-variant-numeric: tabular-nums; }
+  .fiche .infos b { color: __encre__; }
+  .fiche .hausse { color: __accent__; font-weight: 600; }
+  .fiche .baisse { color: __encre2__; font-weight: 600; }
+  .fiche .cote-droit { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; }
+  .fiche .cote-droit span { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: __encre2__; }
+  .matchs-club { display: flex; flex-direction: column; gap: .3rem; margin: .3rem 0 1rem; }
+  .matchs-club div { display: grid; grid-template-columns: 4.6rem 1.6rem 1.8rem 1fr auto; align-items: center;
+                     gap: .6rem; padding: .35rem .6rem; background: __carte__; border: 1px solid __bord__;
+                     border-radius: 6px; color: __encre__; font-size: .93rem; }
+  .matchs-club .date, .matchs-club .lieu { color: __encre2__; font-size: .82rem; }
+  .matchs-club .ecusson { width: 1.6rem; height: 1.6rem; }
+  .matchs-club b { font-variant-numeric: tabular-nums; }
+  .matchs-club i { font-style: normal; width: 1.5rem; height: 1.5rem; border-radius: 3px; font-size: .75rem;
+                   font-weight: 600; display: flex; align-items: center; justify-content: center;
+                   border: 1px solid __bord__; }
+  .matchs-club i.V { background: __encre__; color: __fond__; border-color: __encre__; }
+  .matchs-club i.D { color: __encre2__; border-style: dashed; }
   .classement { margin: .6rem 0 1.2rem; }
   .jr { position: relative; display: grid; grid-template-columns: 1.6rem 2.2rem minmax(7rem, 13rem) 1fr;
         align-items: center; gap: .7rem; padding: .35rem .5rem; border-radius: 8px; }
@@ -211,6 +235,8 @@ CSS = """
     .entete { grid-template-columns: 1fr; gap: 1rem; }
   }
   @media (max-width: 640px) {
+    .fiche { grid-template-columns: auto 1fr; }
+    .fiche .cote-droit { grid-column: 1 / -1; align-items: flex-start; }
     .jr { grid-template-columns: 1.4rem 1.8rem 1fr; }
     .jr .piste { grid-column: 1 / -1; }
     .jr .bulle { left: .5rem; width: calc(100% - 1rem); }
@@ -522,9 +548,10 @@ version_prochains = FICHIER_PROCHAINS.stat().st_mtime if FICHIER_PROCHAINS.exist
 prochains, chances_modele, chances_marche, inconnus = prochaine_journee(code, version, version_prochains)
 affiches_annoncees = tuple(sorted(zip(prochains["HomeTeam"], prochains["AwayTeam"])))
 
-onglet_match, onglet_forces, onglet_journee, onglet_saison, onglet_joueurs, onglet_fiabilite = st.tabs(
-    ["Un match", "Les forces du moment", "Prochaine journée", "La fin de saison", "Les meilleurs joueurs",
-     "Le modèle est-il fiable ?"])
+(onglet_match, onglet_forces, onglet_journee, onglet_saison, onglet_club, onglet_joueurs,
+ onglet_fiabilite) = st.tabs(
+    ["Un match", "Les forces du moment", "Prochaine journée", "La fin de saison", "Fiche club",
+     "Les meilleurs joueurs", "Le modèle est-il fiable ?"])
 
 # ---------- Un match ----------
 
@@ -963,6 +990,106 @@ with onglet_saison:
             "- Blessures, transferts et changements d'entraîneur ne sont pas pris en compte.")
 
 # ---------- Le modèle est-il fiable ? ----------
+
+with onglet_club:
+    explication("Tout ce que le simulateur sait d'un club, sur une seule page : sa note et sa forme, ses "
+                "chances en fin de saison, ses derniers matchs et ses meilleurs joueurs.",
+                titre="La fiche d'un club")
+    clubs_saison = list(table_actuelle.index)
+    club = st.selectbox("Club", sorted(clubs_saison), index=sorted(clubs_saison).index(clubs_saison[0]),
+                        key=f"club_fiche_{code}")
+    forces_club = forces_du_jour(code, version).loc[club]
+    synthese_club, _, _, _ = fin_de_saison(code, version, 10_000, 0, True, affiches_annoncees)
+    bilan_club = synthese_club.loc[club]
+    lettres = "".join(f'<i class="{r}" title="{FORME[r]}">{r}</i>' for r in forme_recente(code, version, club))
+    variation = forces_club["variation"]
+    tendance = (f'<span class="hausse">▲ {variation:+.0f}</span>' if variation > 0.5 else
+                f'<span class="baisse">▼ {variation:+.0f}</span>' if variation < -0.5 else "stable")
+    st.html(f"""
+<div class="fiche">
+  {ecusson(chemin_club(code, club), alt=club)}
+  <div>
+    <h2>{html.escape(club)}</h2>
+    <div class="infos">{rang(rangs_actuels[club])} · <b>{int(bilan_club["points"])} points</b> en
+      {int(bilan_club["joues"])} matchs · différence de buts {int(bilan_club["diff_buts"]):+d}<br>
+      Note <b>{forces_club["note"]:.0f}</b> ({rang(list(notes.index).index(club) + 1)} du championnat) ·
+      sur 5 matchs : {tendance}</div>
+  </div>
+  <div class="cote-droit"><span>Forme récente</span><div class="forme">{lettres}</div></div>
+</div>""")
+
+    f1, f2, f3, f4 = st.columns(4)
+    chiffre_cle(f1, "Points en fin de saison", f"{bilan_club['points_finaux']:.0f}",
+                f"entre {bilan_club['bas']:.0f} et {bilan_club['haut_points']:.0f} (8 saisons sur 10)")
+    chiffre_cle(f2, "Champion", pourcent(bilan_club["titre"]), f"place moyenne : {bilan_club['rang_moyen']:.1f}")
+    chiffre_cle(f3, regles.haut[0], pourcent(bilan_club["haut"]), f"{regles.haut[1]} premières places")
+    chiffre_cle(f4, "Relégation", pourcent(bilan_club["relegation"]),
+                f"{regles.relegues} dernières places" + (f" · barrage {pourcent(bilan_club['barrage'])}"
+                                                        if regles.barrage else ""))
+
+    club_gauche, club_droite = st.columns(2, gap="large")
+    with club_gauche:
+        st.subheader("Ses derniers matchs")
+        siens = saison[(saison["HomeTeam"] == club) | (saison["AwayTeam"] == club)].sort_values("Date")
+        lignes_matchs = []
+        for m in siens.tail(6).iloc[::-1].itertuples():
+            a_domicile = m.HomeTeam == club
+            adversaire = m.AwayTeam if a_domicile else m.HomeTeam
+            pour, contre = (m.FTHG, m.FTAG) if a_domicile else (m.FTAG, m.FTHG)
+            lettre = "N" if pour == contre else "V" if pour > contre else "D"
+            lignes_matchs.append(
+                f'<div><span class="date">{m.Date:%d/%m}</span><i class="{lettre}" title="{FORME[lettre]}">{lettre}</i>'
+                f'{ecusson(chemin_club(code, adversaire), alt=adversaire) or "<span></span>"}'
+                f'<span>{html.escape(adversaire)} <span class="lieu">· {"domicile" if a_domicile else "extérieur"}'
+                f'</span></span><b>{int(pour)}–{int(contre)}</b></div>')
+        st.html(f'<div class="matchs-club">{"".join(lignes_matchs)}</div>')
+        nb_a_jouer = int(len(matchs_restants(saison).query("HomeTeam == @club or AwayTeam == @club")))
+        st.caption(f"Il lui reste {nb_a_jouer} matchs. Note moyenne de ses adversaires à venir : "
+                   f"{forces_club['calendrier']:.0f} (1500 = club moyen ; plus c'est haut, plus c'est dur).")
+
+    with club_droite:
+        st.subheader("Ses meilleurs joueurs")
+        version_joueurs_club = donnees_joueurs()
+        siens_joueurs = pd.DataFrame()
+        if version_joueurs_club is not None:
+            tous_joueurs, _ = joueurs_projetes(code, version, version_joueurs_club)
+            siens_joueurs = tous_joueurs[tous_joueurs["club"] == club]
+        if siens_joueurs.empty:
+            st.caption("Aucun joueur de ce club parmi les 50 meilleurs buteurs ou passeurs du championnat.")
+        else:
+            siens_joueurs = siens_joueurs.sort_values(["decisives", "buts"], ascending=False).head(8)
+            st.dataframe(
+                siens_joueurs[["joueur", "matchs", "buts", "buts_prevus", "passes", "passes_prevus"]],
+                hide_index=True, width="stretch",
+                column_config={
+                    "joueur": st.column_config.TextColumn("Joueur", pinned=True),
+                    "matchs": st.column_config.NumberColumn("Matchs", format="%d"),
+                    "buts": st.column_config.NumberColumn("Buts", format="%d"),
+                    "buts_prevus": st.column_config.NumberColumn(
+                        "Buts prévus", format="%.0f", help="Total attendu en fin de saison"),
+                    "passes": st.column_config.NumberColumn("Passes", format="%d"),
+                    "passes_prevus": st.column_config.NumberColumn(
+                        "Passes prévues", format="%.0f", help="Total attendu en fin de saison"),
+                })
+            st.caption("Seuls les joueurs classés parmi les 50 meilleurs buteurs ou passeurs du championnat "
+                       "apparaissent (données ESPN).")
+
+    st.subheader("Sa note depuis 2021")
+    parcours = pd.concat([
+        matchs[matchs["HomeTeam"] == club].assign(note=lambda d: d["force_dom"], adversaire=lambda d: d["AwayTeam"]),
+        matchs[matchs["AwayTeam"] == club].assign(note=lambda d: d["force_ext"], adversaire=lambda d: d["HomeTeam"]),
+    ]).sort_values("Date")
+    parcours["score"] = (parcours["HomeTeam"] + " " + parcours["FTHG"].astype(int).astype(str) + "–"
+                         + parcours["FTAG"].astype(int).astype(str) + " " + parcours["AwayTeam"])
+    courbe = alt.Chart(parcours).mark_line(interpolate="step-after", color=c["accent"], strokeWidth=2).encode(
+        x=alt.X("Date:T", title=None, axis=alt.Axis(format="%Y", tickCount="year")),
+        y=alt.Y("note:Q", title="Note Elo", scale=alt.Scale(zero=False)),
+        tooltip=[alt.Tooltip("Date:T", format="%d/%m/%Y"), alt.Tooltip("score:N", title="Match"),
+                 alt.Tooltip("note:Q", format=".0f", title="Note avant le match")])
+    repere = alt.Chart(pd.DataFrame({"y": [NOTE_INITIALE]})).mark_rule(
+        strokeDash=[4, 4], color=c["D"]).encode(y="y:Q")
+    st.altair_chart((repere + courbe).properties(height=260), width="stretch")
+
 
 with onglet_joueurs:
     explication("Les 50 meilleurs buteurs et les 50 meilleurs passeurs du championnat, avec leur total "

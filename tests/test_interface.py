@@ -14,9 +14,10 @@ def test_interface_sans_erreur(code):
     app.query_params["championnat"] = code
     app.run()
     assert not app.exception
-    # Trois tableaux, plus celui de la prochaine journée quand des matchs sont annoncés
-    assert len(app.dataframe) in (3, 4)
-    assert len(app.tabs) == 6
+    # Trois tableaux, plus celui de la prochaine journée quand des matchs sont annoncés,
+    # plus celui des joueurs de la fiche club quand le club en a parmi les meilleurs
+    assert len(app.dataframe) in (3, 4, 5)
+    assert len(app.tabs) == 7
 
 
 def test_prochaine_journee_avec_des_matchs_annonces(tmp_path, monkeypatch):
@@ -38,4 +39,4 @@ def test_prochaine_journee_avec_des_matchs_annonces(tmp_path, monkeypatch):
     app.query_params["championnat"] = "F1"
     app.run()
     assert not app.exception
-    assert len(app.dataframe) == 4  # le tableau « Voir les chiffres » de la prochaine journée
+    assert len(app.dataframe) in (4, 5)  # dont le tableau « Voir les chiffres » de la prochaine journée
