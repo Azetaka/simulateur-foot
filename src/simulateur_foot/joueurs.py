@@ -19,7 +19,6 @@ import numpy as np
 import pandas as pd
 import requests
 
-from .championnats import CHAMPIONNATS
 from .collecte_resultats import DOSSIER_DATA
 from .logos import ALIAS, _simplifie
 from .scores import buts_attendus

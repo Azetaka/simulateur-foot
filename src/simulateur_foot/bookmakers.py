@@ -12,8 +12,14 @@ import pandas as pd
 
 from .championnats import CHAMPIONNATS
 from .collecte_resultats import URL
-from .modele import (RESULTATS, SAISON_TEST, SAISONS_ENTRAINEMENT, pertes_log, proba_frequences,
-                     proba_logistique_forces, selection)
+from .modele import (
+    SAISON_TEST,
+    SAISONS_ENTRAINEMENT,
+    pertes_log,
+    proba_frequences,
+    proba_logistique_forces,
+    selection,
+)
 from .prediction import chances_bookmakers, charger_forces
 
 COTES = ["AvgH", "AvgD", "AvgA"]

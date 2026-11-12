@@ -15,7 +15,13 @@ import pandas as pd
 from .championnats import CHAMPIONNATS
 from .collecte_resultats import DOSSIER_DATA, FICHIER, charger_prochains_matchs
 from .modele import RESULTATS
-from .prediction import SAISON_EN_COURS, chances_bookmakers, charger_forces, entrainer, probabilites
+from .prediction import (
+    SAISON_EN_COURS,
+    chances_bookmakers,
+    charger_forces,
+    entrainer,
+    probabilites,
+)
 
 FICHIER_PRONOSTICS = DOSSIER_DATA / "pronostics.csv"
 CLES = ["Championnat", "Saison", "HomeTeam", "AwayTeam"]
