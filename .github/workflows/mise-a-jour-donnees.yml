@@ -1,4 +1,5 @@
-# Met à jour data/resultats.csv et data/prochains_matchs.csv deux fois par semaine
+# Met à jour les fichiers de data/ (résultats, prochaine journée, calendrier, joueurs,
+# pronostics) deux fois par semaine
 # et les commite sur develop.
 # football-data.co.uk publie en général le lundi (week-end) et en milieu de
 # semaine (matchs du mardi-mercredi) : on passe le mardi et le vendredi matin.
@@ -37,17 +38,26 @@ jobs:
       - name: Télécharger la saison en cours et la prochaine journée
         run: uv run simulateur-foot maj
 
+      - name: Enregistrer les pronostics des matchs à venir
+        run: uv run simulateur-foot pronostics
+
+      - name: Télécharger les buteurs et les passeurs
+        # ESPN peut être indisponible : on garde alors le fichier précédent
+        run: uv run simulateur-foot joueurs || echo "Statistiques des joueurs non mises à jour."
+
       - name: Vérifier que tout fonctionne avec les nouvelles données
         run: uv run pytest -q
 
       - name: Commiter les nouveaux résultats
         run: |
-          if git diff --quiet -- data/resultats.csv data/prochains_matchs.csv; then
+          git add data/resultats.csv data/prochains_matchs.csv data/joueurs.csv
+          if [ -f data/calendrier.csv ]; then git add data/calendrier.csv; fi
+          if [ -f data/pronostics.csv ]; then git add data/pronostics.csv; fi
+          if git diff --cached --quiet; then
             echo "Rien de nouveau."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/resultats.csv data/prochains_matchs.csv
           git commit -m "Données : résultats au $(date -u +%d/%m/%Y)"
           git push

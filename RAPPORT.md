@@ -80,3 +80,21 @@ La régression logistique de la référence 2 ne convergeait pas : les notes bru
 Chiffres moyennés sur les six championnats. Le poids a été choisi sur les deux saisons de validation, avant de regarder la saison test ; sur celle-ci, la variante retenue fait mieux que l'ancienne dans les six championnats. Plafonner l'écart à 3 buts n'apporte rien. L'écart reste petit (≈ 0,001 à 0,003 de log-loss), du même ordre que le bruit : c'est une amélioration modeste mais constante.
 
 **Modèle de score.** Deux régressions de Poisson sur les deux notes (buts du club qui reçoit, buts de l'autre) donnent les buts attendus, puis une grille de probabilités par score (`scores.py`). Pour l'issue du match, ce modèle ne bat pas la logistique : sur la saison test, il fait mieux dans quatre championnats et moins bien dans deux, et il sous-estime les nuls. Il n'est donc pas utilisé seul : la grille est **recalée région par région** (défaite, nul, victoire) sur les chances de la logistique. Il sert à afficher les scores probables, à tirer un score dans « Jouer le match », et à tirer l'écart de buts de chaque match simulé, qui alimente la différence de buts (départage) et la mise à jour Elo pondérée.
+
+## Mise à jour (pistes écartées, suivi en direct, projection des joueurs)
+
+**Pistes essayées et écartées.** Réglages choisis sur les saisons de validation, puis mesurés une fois sur 2526, six championnats réunis :
+
+| Variante | Log-loss test | Écart avec le modèle actuel [intervalle à 95 %] |
+|---|---|---|
+| Modèle actuel | 1,0082 | |
+| Recalibration des probabilités (température 1,11) | 1,0067 | −0,0015 |
+| Seconde note Elo sur la part de tirs cadrés (K = 20) | 1,0068 | −0,0014 [−0,0052 ; +0,0025] |
+| Note unique mêlant résultat et tirs cadrés (40 %) | 1,0070 | −0,0012 |
+| Un seul modèle pour les six championnats | 1,0056 | −0,0026 [−0,0062 ; +0,0009] |
+
+Aucun écart ne se distingue du bruit et la part de bons pronostics ne bouge pas (50 %). Les tirs cadrés n'apportent rien de plus que l'Elo pondéré par l'écart de buts. Rien n'a été retenu : ce qui manque au modèle, ce sont des informations absentes des données (blessures, compositions, coupes d'Europe).
+
+**Suivi en direct.** La saison test est une saison passée. `uv run simulateur-foot pronostics` enregistre chaque semaine, dans `data/pronostics.csv`, les chances annoncées pour les matchs à venir, avant qu'ils soient joués ; une annonce n'est jamais réécrite. L'onglet « Le modèle est-il fiable ? » en affiche le bilan au fil de la saison.
+
+**Projection des joueurs.** Prolonger le rythme d'un joueur tel quel surestime les départs canon (9 buts en 10 matchs donnaient 31 buts en fin de saison). Le rythme est maintenant ramené vers la moyenne des joueurs du classement, comme si le joueur avait disputé 10 matchs de plus au rythme moyen (`joueurs.MATCHS_PRUDENCE`), puis ajusté à la difficulté des matchs restants de son club (buts attendus du modèle de score). Le même joueur est projeté à 24 buts. La valeur 10 est un choix raisonnable, pas un réglage mesuré : il faudrait un historique de statistiques de joueurs pour le valider.

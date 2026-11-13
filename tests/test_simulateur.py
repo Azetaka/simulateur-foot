@@ -10,7 +10,7 @@ from simulateur_foot.force_clubs import (NOTE_INITIALE, calculer_forces, evoluti
 from simulateur_foot.modele import pertes_brier, pertes_log
 from simulateur_foot.modele import creer_logistique
 from simulateur_foot import collecte_resultats
-from simulateur_foot.prediction import chances_bookmakers, probabilites, probabilites_tableau
+from simulateur_foot.prediction import probabilites, probabilites_tableau
 from simulateur_foot.scores import (ECARTS, MAX_BUTS, REGIONS, distribution_ecarts, entrainer_scores,
                                     grille_scores, tirer_ecarts, tirer_scores)
 from simulateur_foot.simulation import (calendrier, classement, difficulte_calendrier, matchs_restants,
@@ -262,20 +262,10 @@ def test_notes_evolutives():
     assert mobiles.std(axis=1).mean() > figees.std(axis=1).mean()
 
 
-def test_chances_bookmakers_sans_marge():
-    # Cotes 2 / 3,5 / 4 : 1/cote fait 0,5 + 0,286 + 0,25 = 1,036, soit 3,6 % de marge
-    chances = chances_bookmakers([2.0], [3.5], [4.0]).iloc[0]
-    assert chances.sum() == pytest.approx(1)
-    assert list(chances.index) == ["A", "D", "H"]
-    assert chances["H"] == pytest.approx(0.5 / (0.5 + 1 / 3.5 + 0.25))
-    assert chances["H"] > chances["D"] > chances["A"]
-
-
 def test_prochains_matchs_sans_ceux_deja_joues(tmp_path, monkeypatch):
     fichier = tmp_path / "prochains_matchs.csv"
     pd.DataFrame({"Championnat": ["F1", "F1", "E0"], "Date": ["2026-11-21"] * 3, "Heure": ["21:00"] * 3,
-                  "HomeTeam": ["A", "C", "X"], "AwayTeam": ["B", "A", "Y"],
-                  "CoteH": [2.0] * 3, "CoteD": [3.4] * 3, "CoteA": [3.8] * 3}).to_csv(fichier, index=False)
+                  "HomeTeam": ["A", "C", "X"], "AwayTeam": ["B", "A", "Y"]}).to_csv(fichier, index=False)
     monkeypatch.setattr(collecte_resultats, "FICHIER_PROCHAINS", fichier)
     saison = matchs_exemple().query("Saison == 2324")  # A–B déjà joué, C–A aussi
     assert collecte_resultats.charger_prochains_matchs("F1", saison).empty
