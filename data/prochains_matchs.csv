@@ -1,1 +1,58 @@
 Championnat,Date,Heure,HomeTeam,AwayTeam
+D1,2026-11-20,19:30,Bayern Munich,FC Koln
+D1,2026-11-21,14:30,Ein Frankfurt,Hoffenheim
+D1,2026-11-21,14:30,Elversberg,Freiburg
+D1,2026-11-21,14:30,Leverkusen,Paderborn
+D1,2026-11-21,14:30,M'gladbach,Dortmund
+D1,2026-11-21,14:30,Union Berlin,RB Leipzig
+D1,2026-11-21,17:30,Schalke 04,Stuttgart
+D1,2026-11-22,14:30,Augsburg,Mainz
+D1,2026-11-22,16:30,Werder Bremen,Hamburg
+E0,2026-11-21,12:30,Man City,Fulham
+E0,2026-11-21,15:00,Aston Villa,Sunderland
+E0,2026-11-21,15:00,Bournemouth,Nott'm Forest
+E0,2026-11-21,15:00,Chelsea,Leeds
+E0,2026-11-21,15:00,Coventry,Crystal Palace
+E0,2026-11-21,15:00,Tottenham,Ipswich
+E0,2026-11-21,17:30,Newcastle,Arsenal
+E0,2026-11-22,14:00,Hull,Brighton
+E0,2026-11-22,16:30,Liverpool,Man United
+E0,2026-11-23,20:00,Brentford,Everton
+F1,2026-11-20,19:45,Troyes,Le Havre
+F1,2026-11-21,16:15,Nice,Paris SG
+F1,2026-11-21,19:45,Lens,Toulouse
+F1,2026-11-21,19:45,Lille,Lyon
+F1,2026-11-21,19:45,Monaco,Auxerre
+F1,2026-11-21,19:45,Strasbourg,Brest
+F1,2026-11-22,14:00,Paris FC,Angers
+F1,2026-11-22,16:15,Lorient,Rennes
+F1,2026-11-22,19:45,Marseille,Le Mans
+F2,2026-11-20,19:00,Annecy,Clermont
+F2,2026-11-20,19:00,Guingamp,Rodez
+F2,2026-11-20,19:00,Metz,Boulogne
+F2,2026-11-20,19:00,Nancy,Dijon
+F2,2026-11-20,19:00,Red Star,Pau FC
+F2,2026-11-21,13:00,Laval,Montpellier
+F2,2026-11-21,19:00,Reims,St Etienne
+F2,2026-11-23,19:45,Nantes,Grenoble
+F2,2026-11-23,19:45,Sochaux,Dunkerque
+I1,2026-11-21,14:00,Como,Cagliari
+I1,2026-11-21,14:00,Lazio,Lecce
+I1,2026-11-21,17:00,Parma,Roma
+I1,2026-11-21,19:45,Napoli,Torino
+I1,2026-11-22,11:30,Juventus,Venezia
+I1,2026-11-22,14:00,Bologna,Udinese
+I1,2026-11-22,14:00,Sassuolo,Genoa
+I1,2026-11-22,17:00,Milan,Frosinone
+I1,2026-11-22,19:45,Atalanta,Inter
+I1,2026-11-23,19:45,Monza,Fiorentina
+SP1,2026-11-20,20:00,Ath Bilbao,Espanol
+SP1,2026-11-21,13:00,Alaves,La Coruna
+SP1,2026-11-21,15:15,Vallecano,Valencia
+SP1,2026-11-21,17:30,Sevilla,Betis
+SP1,2026-11-21,20:00,Real Madrid,Celta
+SP1,2026-11-22,13:00,Barcelona,Villarreal
+SP1,2026-11-22,15:15,Santander,Sociedad
+SP1,2026-11-22,17:30,Osasuna,Malaga
+SP1,2026-11-22,20:00,Getafe,Ath Madrid
+SP1,2026-11-23,20:00,Levante,Elche
