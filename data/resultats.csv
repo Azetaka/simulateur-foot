@@ -1610,6 +1610,15 @@ D1,2026-11-07,Stuttgart,Werder Bremen,1,0,H,13,23,5,5,2627
 D1,2026-11-08,FC Koln,Leverkusen,1,2,A,12,14,6,8,2627
 D1,2026-11-08,Freiburg,Union Berlin,2,0,H,20,4,9,0,2627
 D1,2026-11-08,Hoffenheim,Schalke 04,2,1,H,15,23,7,6,2627
+D1,2026-11-20,Bayern Munich,FC Koln,1,1,D,17,7,1,4,2627
+D1,2026-11-21,Ein Frankfurt,Hoffenheim,1,0,H,21,16,6,4,2627
+D1,2026-11-21,Elversberg,Freiburg,0,1,A,10,9,2,1,2627
+D1,2026-11-21,Leverkusen,Paderborn,4,0,H,20,8,10,1,2627
+D1,2026-11-21,M'gladbach,Dortmund,0,1,A,9,15,2,5,2627
+D1,2026-11-21,Union Berlin,RB Leipzig,1,5,A,14,32,8,10,2627
+D1,2026-11-21,Schalke 04,Stuttgart,0,0,D,21,15,7,4,2627
+D1,2026-11-22,Augsburg,Mainz,3,1,H,22,7,9,4,2627
+D1,2026-11-22,Werder Bremen,Hamburg,4,0,H,19,17,7,2,2627
 E0,2021-08-13,Brentford,Arsenal,2,0,H,8,22,3,4,2122
 E0,2021-08-14,Man United,Leeds,5,1,H,16,10,8,3,2122
 E0,2021-08-14,Burnley,Brighton,1,2,A,14,14,3,8,2122
@@ -3610,6 +3619,16 @@ E0,2026-11-08,Crystal Palace,Liverpool,1,3,A,19,20,7,8,2627
 E0,2026-11-08,Ipswich,Bournemouth,1,2,A,10,15,2,4,2627
 E0,2026-11-08,Sunderland,Chelsea,1,0,H,9,10,2,4,2627
 E0,2026-11-08,Man United,Aston Villa,4,4,D,26,12,9,6,2627
+E0,2026-11-21,Man City,Fulham,1,1,D,15,5,3,4,2627
+E0,2026-11-21,Aston Villa,Sunderland,0,0,D,19,7,7,1,2627
+E0,2026-11-21,Bournemouth,Nott'm Forest,2,0,H,19,18,7,1,2627
+E0,2026-11-21,Chelsea,Leeds,1,4,A,14,21,3,8,2627
+E0,2026-11-21,Coventry,Crystal Palace,3,2,H,11,14,7,5,2627
+E0,2026-11-21,Tottenham,Ipswich,2,0,H,18,11,9,3,2627
+E0,2026-11-21,Newcastle,Arsenal,2,2,D,12,13,3,4,2627
+E0,2026-11-22,Hull,Brighton,2,0,H,11,15,5,8,2627
+E0,2026-11-22,Liverpool,Man United,4,0,H,28,10,11,3,2627
+E0,2026-11-23,Brentford,Everton,4,0,H,21,4,7,2,2627
 F1,2021-08-06,Monaco,Nantes,1,1,D,15,5,3,1,2122
 F1,2021-08-07,Lyon,Brest,1,1,D,17,13,4,8,2122
 F1,2021-08-07,Troyes,Paris SG,1,2,A,15,12,7,3,2122
@@ -5378,6 +5397,15 @@ F1,2026-11-08,Brest,Lyon,2,0,H,13,10,6,2,2627
 F1,2026-11-08,Le Havre,Lorient,0,2,A,21,7,5,3,2627
 F1,2026-11-08,Le Mans,Monaco,1,1,D,19,6,5,3,2627
 F1,2026-11-08,Lens,Marseille,1,2,A,13,16,6,5,2627
+F1,2026-11-20,Troyes,Le Havre,3,1,H,19,7,7,2,2627
+F1,2026-11-21,Nice,Paris SG,2,3,A,4,14,3,5,2627
+F1,2026-11-21,Lens,Toulouse,1,1,D,22,9,8,5,2627
+F1,2026-11-21,Lille,Lyon,0,1,A,14,9,5,6,2627
+F1,2026-11-21,Monaco,Auxerre,1,1,D,15,6,4,2,2627
+F1,2026-11-21,Strasbourg,Brest,0,1,A,15,16,5,2,2627
+F1,2026-11-22,Paris FC,Angers,4,0,H,18,9,9,1,2627
+F1,2026-11-22,Lorient,Rennes,1,1,D,12,13,3,3,2627
+F1,2026-11-22,Marseille,Le Mans,2,3,A,11,19,5,9,2627
 F2,2021-07-24,Bastia,Nimes,1,1,D,10,9,4,6,2122
 F2,2021-07-24,Amiens,Auxerre,1,2,A,10,12,4,5,2122
 F2,2021-07-24,Caen,Rodez,4,0,H,13,15,5,7,2122
@@ -7236,6 +7264,15 @@ F2,2026-11-06,Nancy,Sochaux,1,0,H,9,8,4,2,2627
 F2,2026-11-07,Clermont,Rodez,1,0,H,12,9,4,2,2627
 F2,2026-11-07,Pau FC,Nantes,0,2,A,11,9,3,4,2627
 F2,2026-11-07,St Etienne,Laval,2,0,H,14,4,6,1,2627
+F2,2026-11-20,Annecy,Clermont,4,2,H,17,10,7,2,2627
+F2,2026-11-20,Guingamp,Rodez,1,3,A,20,18,11,7,2627
+F2,2026-11-20,Metz,Boulogne,2,1,H,17,12,5,4,2627
+F2,2026-11-20,Nancy,Dijon,1,0,H,7,7,2,0,2627
+F2,2026-11-20,Red Star,Pau FC,2,1,H,14,15,7,4,2627
+F2,2026-11-21,Laval,Montpellier,1,0,H,12,10,6,2,2627
+F2,2026-11-21,Reims,St Etienne,0,1,A,13,7,3,3,2627
+F2,2026-11-23,Nantes,Grenoble,1,0,H,25,13,10,2,2627
+F2,2026-11-23,Sochaux,Dunkerque,2,3,A,13,14,5,6,2627
 I1,2021-08-21,Inter,Genoa,4,0,H,17,11,8,5,2122
 I1,2021-08-21,Verona,Sassuolo,2,3,A,12,15,4,8,2122
 I1,2021-08-21,Empoli,Lazio,1,3,A,16,8,5,5,2122
@@ -9246,6 +9283,16 @@ I1,2026-11-08,Genoa,Milan,1,2,A,17,6,5,2,2627
 I1,2026-11-08,Monza,Atalanta,0,1,A,22,13,7,7,2627
 I1,2026-11-08,Inter,Como,2,0,H,14,5,4,1,2627
 I1,2026-11-08,Fiorentina,Juventus,2,2,D,22,18,6,6,2627
+I1,2026-11-21,Como,Cagliari,2,0,H,10,6,6,1,2627
+I1,2026-11-21,Lazio,Lecce,3,0,H,10,10,6,2,2627
+I1,2026-11-21,Parma,Roma,1,5,A,17,19,6,9,2627
+I1,2026-11-21,Napoli,Torino,1,0,H,22,12,10,2,2627
+I1,2026-11-22,Juventus,Venezia,4,0,H,12,13,8,1,2627
+I1,2026-11-22,Bologna,Udinese,1,1,D,18,11,4,3,2627
+I1,2026-11-22,Sassuolo,Genoa,0,2,A,25,11,7,5,2627
+I1,2026-11-22,Milan,Frosinone,5,1,H,12,15,8,3,2627
+I1,2026-11-22,Atalanta,Inter,4,4,D,15,16,10,6,2627
+I1,2026-11-23,Monza,Fiorentina,3,0,H,13,17,5,8,2627
 SP1,2021-08-13,Valencia,Getafe,1,0,H,4,22,2,4,2122
 SP1,2021-08-14,Cadiz,Levante,1,1,D,7,12,2,3,2122
 SP1,2021-08-14,Mallorca,Betis,1,1,D,6,10,2,1,2122
@@ -11265,3 +11312,13 @@ SP1,2026-11-08,Sociedad,Vallecano,1,0,H,17,11,3,3,2627
 SP1,2026-11-08,Celta,Levante,0,0,D,23,6,8,0,2627
 SP1,2026-11-08,Villarreal,Getafe,2,0,H,22,9,7,1,2627
 SP1,2026-11-08,Ath Madrid,Barcelona,1,2,A,9,19,4,4,2627
+SP1,2026-11-20,Ath Bilbao,Espanol,0,1,A,17,6,6,3,2627
+SP1,2026-11-21,Alaves,La Coruna,3,1,H,21,7,8,2,2627
+SP1,2026-11-21,Vallecano,Valencia,0,1,A,21,11,5,2,2627
+SP1,2026-11-21,Sevilla,Betis,1,1,D,25,6,6,3,2627
+SP1,2026-11-21,Real Madrid,Celta,2,1,H,24,8,7,4,2627
+SP1,2026-11-22,Barcelona,Villarreal,3,2,H,30,4,9,2,2627
+SP1,2026-11-22,Santander,Sociedad,3,2,H,12,31,8,7,2627
+SP1,2026-11-22,Osasuna,Malaga,1,0,H,11,5,2,0,2627
+SP1,2026-11-22,Getafe,Ath Madrid,0,3,A,11,20,1,10,2627
+SP1,2026-11-23,Levante,Elche,1,1,D,18,4,2,2,2627
