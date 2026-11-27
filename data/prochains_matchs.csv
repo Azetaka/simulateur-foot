@@ -1,1 +1,49 @@
 Championnat,Date,Heure,HomeTeam,AwayTeam
+D1,2026-11-27,19:30,Werder Bremen,M'gladbach
+D1,2026-11-28,14:30,FC Koln,Elversberg
+D1,2026-11-28,14:30,Hamburg,Bayern Munich
+D1,2026-11-28,14:30,Mainz,Union Berlin
+D1,2026-11-28,14:30,Paderborn,Schalke 04
+D1,2026-11-28,17:30,Stuttgart,Ein Frankfurt
+D1,2026-11-29,14:30,Freiburg,RB Leipzig
+D1,2026-11-29,16:30,Hoffenheim,Augsburg
+D1,2026-11-29,18:30,Dortmund,Leverkusen
+E0,2026-11-27,20:00,Nott'm Forest,Chelsea
+E0,2026-11-28,15:00,Leeds,Coventry
+E0,2026-11-28,15:00,Man United,Brentford
+E0,2026-11-28,17:30,Ipswich,Aston Villa
+E0,2026-11-29,12:00,Everton,Liverpool
+E0,2026-11-29,14:05,Brighton,Newcastle
+E0,2026-11-29,14:05,Crystal Palace,Hull
+E0,2026-11-29,14:05,Fulham,Bournemouth
+E0,2026-11-29,14:05,Sunderland,Tottenham
+E0,2026-11-29,16:30,Arsenal,Man City
+F1,2026-11-27,19:45,Brest,Paris FC
+F1,2026-11-28,16:15,Angers,Lens
+F1,2026-11-28,19:45,Le Havre,Strasbourg
+F1,2026-11-28,19:45,Le Mans,Lille
+F1,2026-11-28,19:45,Nice,Troyes
+F1,2026-11-28,19:45,Paris SG,Lorient
+F1,2026-11-29,14:00,Auxerre,Marseille
+F1,2026-11-29,16:15,Toulouse,Rennes
+F1,2026-11-29,19:45,Lyon,Monaco
+I1,2026-11-27,19:45,Venezia,Bologna
+I1,2026-11-28,14:00,Frosinone,Parma
+I1,2026-11-28,17:00,Torino,Lazio
+I1,2026-11-28,19:45,Inter,Genoa
+I1,2026-11-29,11:30,Udinese,Fiorentina
+I1,2026-11-29,14:00,Sassuolo,Napoli
+I1,2026-11-29,17:00,Roma,Monza
+I1,2026-11-29,19:45,Como,Juventus
+I1,2026-11-30,17:30,Lecce,Atalanta
+I1,2026-11-30,19:45,Cagliari,Milan
+SP1,2026-11-27,20:00,Levante,Santander
+SP1,2026-11-28,13:00,Betis,Vallecano
+SP1,2026-11-28,15:15,Malaga,Ath Bilbao
+SP1,2026-11-28,17:30,Elche,Ath Madrid
+SP1,2026-11-28,20:00,Real Madrid,Alaves
+SP1,2026-11-29,13:00,Valencia,Osasuna
+SP1,2026-11-29,15:15,La Coruna,Barcelona
+SP1,2026-11-29,17:30,Celta,Villarreal
+SP1,2026-11-29,20:00,Sociedad,Sevilla
+SP1,2026-11-30,20:00,Espanol,Getafe
